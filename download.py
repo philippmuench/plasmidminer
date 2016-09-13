@@ -2,12 +2,12 @@
 # philipp.muench@helmholtz-hzi.de
 # this script downloades plasmid/chromosome sequences from entrez
 
-import time
-import os
-from progressbar import *
-from progress.bar import Bar
-import fileinput
-import glob
+import time, os, glob, fileinput
+
+try:
+    from progress.bar import Bar
+except ImportError:
+    print "This script requires progess to be installed!"
 
 try:
     from Bio import SeqIO
@@ -27,7 +27,7 @@ def downloadChr(email):
     # get the genome ids 
     search_term = '"Escherichia coli"[Organism] AND complete genome[title]'
     print("searching in entrez for " + search_term)
-    handle = Entrez.esearch(db='nucleotide', term=search_term, retmax =10000)
+    handle = Entrez.esearch(db='nucleotide', term=search_term, retmax =10)
     genome_ids = Entrez.read(handle)['IdList']
     records = len(genome_ids)
     #pbar = ProgressBar()
@@ -48,14 +48,12 @@ def downloadChr(email):
     bar.finish()
     # create multiple sequence fasta file
     filenames = glob.glob("chr/*.fasta")
-    bar = Bar('creating chromosomes.fasta', max=records)
+    print("creating chromosomes.fasta")
     with open('chromosomes.fasta', 'w') as outfile:
         for fname in filenames:
             with open(fname) as infile:
                 for line in infile:
                     outfile.write(line)
-                    bar.next()
-    bar.finish()
 
 def downloadPla(email):
     # imports all E.Coli plasmids as positive samples
@@ -65,7 +63,7 @@ def downloadPla(email):
     # get the genome ids
     search_term = '"Escherichia coli"[Organism] AND (bacteria[filter] AND plasmid[filter])'
     print("searching in entrez for " + search_term)
-    handle = Entrez.esearch(db='nucleotide', term=search_term, retmax =10000)
+    handle = Entrez.esearch(db='nucleotide', term=search_term, retmax =10)
     genome_ids = Entrez.read(handle)['IdList']
     records = len(genome_ids)
     bar = Bar('download plasmid sequences', max=records)
@@ -85,14 +83,13 @@ def downloadPla(email):
     bar.finish()
     # create multiple sequence fasta file
     filenames = glob.glob("pla/*.fasta")
-    bar = Bar('creating plasmids.fasta', max=records)
+    print("creating plasmid .fasta file")
     with open('plasmids.fasta', 'w') as outfile:
         for fname in filenames:
             with open(fname) as infile:
                 for line in infile:
                     outfile.write(line)
-                    bar.next()
-    bar.finish()
+   
 
 Entrez.email = "philipp.muench@helmholtz-hzi.de"
 downloadChr(Entrez.email)
