@@ -2,8 +2,8 @@ alignlib-lite==0.2.3
 beautifulsoup4==4.4.0
 biopython==1.67
 brewer2mpl==1.4.1
-bx-python==0.7.2
--e git+https://github.com/CGATOxford/cgat.git@98d57193fca60cede31fce577769db6be84adc55#egg=CGAT
+#bx-python==0.7.2
+#-e git+https://github.com/CGATOxford/cgat.git@98d57193fca60cede31fce577769db6be84adc55#egg=CGAT
 CGATReport==0.2.1
 cycler==0.10.0
 Cython==0.24.1
@@ -35,7 +35,7 @@ progress==1.2
 progressbar==2.3
 psycopg2==2.5.4
 pybedtools==0.6.8
-pycairo==1.10.0
+#pycairo==1.8.8
 PyGreSQL==4.1.1
 pyparsing==1.5.7
 pysam==0.8.4
@@ -57,5 +57,5 @@ statsmodels==0.6.1
 threadpool==1.2.7
 toposort==1.4
 web.py==0.37
-weblogo==3.4
+#weblogo==3.4
 xlwt==1.1.2
