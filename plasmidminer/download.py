@@ -91,6 +91,3 @@ def downloadPla(email):
                     outfile.write(line)
    
 
-Entrez.email = "philipp.muench@helmholtz-hzi.de"
-downloadChr(Entrez.email)
-downloadPla(Entrez.email)
