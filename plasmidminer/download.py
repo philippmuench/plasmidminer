@@ -21,7 +21,6 @@ except ImportError:
 def downloadChr(email):
     # imports all complete E.Coli genomes as negative samples
     Entrez.email ="philipp.muench@helmholtz-hzi.de"
-    # create download folder
     if not os.path.exists('chr'):
         os.makedirs('chr')
     # get the genome ids 
@@ -30,7 +29,6 @@ def downloadChr(email):
     handle = Entrez.esearch(db='nucleotide', term=search_term, retmax =10)
     genome_ids = Entrez.read(handle)['IdList']
     records = len(genome_ids)
-    #pbar = ProgressBar()
     bar = Bar('download chromosom sequences', max=records)
     for genome_id in genome_ids:
         record = Entrez.efetch(db="nucleotide", id=genome_id, rettype="fasta", retmode="text")
@@ -38,7 +36,6 @@ def downloadChr(email):
         # write record
         filename_gpff = 'chr/geneBankRecord_{}.gpff'.format(genome_id)
         filename = 'chr/genBankRecord_{}.fasta'.format(genome_id)
-      #  print('Downloading: {}'.format(filename))
         with open(filename, 'w') as f:
             f.write(record.read())
         with open(filename_gpff, 'w') as f:
@@ -89,5 +86,3 @@ def downloadPla(email):
             with open(fname) as infile:
                 for line in infile:
                     outfile.write(line)
-   
-
