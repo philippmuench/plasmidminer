@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # philipp.muench@helmholtz-hzi.de
 # this script downloades plasmid/chromosome sequences from entrez
+#http://www.ncbi.nlm.nih.gov/genome/browse/
 
 import time, os, glob, fileinput
 
@@ -32,14 +33,14 @@ def downloadChr(email):
     bar = Bar('download chromosom sequences', max=records)
     for genome_id in genome_ids:
         record = Entrez.efetch(db="nucleotide", id=genome_id, rettype="fasta", retmode="text")
-        record_gpff = Entrez.efetch(db="protein", id=genome_id, format="gp")
+        record_gpf = Entrez.efetch(db="protein", id=genome_id, format="gpf")
         # write record
-        filename_gpff = 'chr/geneBankRecord_{}.gpff'.format(genome_id)
+        filename_gpf = 'chr/geneBankRecord_{}.gpf'.format(genome_id)
         filename = 'chr/genBankRecord_{}.fasta'.format(genome_id)
         with open(filename, 'w') as f:
             f.write(record.read())
-        with open(filename_gpff, 'w') as f:
-            f.write(record_gpff.read())
+        with open(filename_gpf, 'w') as f:
+            f.write(record_gpf.read())
         time.sleep(1) # to make sure not many requests go per second to ncbi
         bar.next()
     bar.finish()
@@ -67,14 +68,14 @@ def downloadPla(email):
     # iterate over genome ids and download informations
     for genome_id in genome_ids:
         record = Entrez.efetch(db="nucleotide", id=genome_id, rettype="fasta", retmode="text")
-        record_gpff = Entrez.efetch(db="protein", id=genome_id, format="gp")
+        record_gpf = Entrez.efetch(db="protein", id=genome_id, format="gpf")
         # write gb record
         filename = 'pla/genBankRecord_{}.fasta'.format(genome_id)
-        filename_gpff = 'pla/geneBankRecord_{}.gpff'.format(genome_id)
+        filename_gpf = 'pla/geneBankRecord_{}.gpf'.format(genome_id)
         with open(filename, 'w') as f:
             f.write(record.read())
-        with open(filename_gpff, 'w') as f:
-            f.write(record_gpff.read())
+        with open(filename_gpf, 'w') as f:
+            f.write(record_gpf.read())
         time.sleep(1) # to make sure not many requests go per second to ncbi
         bar.next()
     bar.finish()
@@ -86,3 +87,5 @@ def downloadPla(email):
             with open(fname) as infile:
                 for line in infile:
                     outfile.write(line)
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
