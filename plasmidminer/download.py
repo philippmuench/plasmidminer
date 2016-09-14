@@ -47,7 +47,7 @@ def downloadChr(email):
     # create multiple sequence fasta file
     filenames = glob.glob("chr/*.fasta")
     print("creating chromosomes.fasta")
-    with open('chromosomes.fasta', 'w') as outfile:
+    with open('chromosome.fasta', 'w') as outfile:
         for fname in filenames:
             with open(fname) as infile:
                 for line in infile:
@@ -61,7 +61,7 @@ def downloadPla(email):
     # get the genome ids
     search_term = '"Escherichia coli"[Organism] AND (bacteria[filter] AND plasmid[filter])'
     print("searching in entrez for " + search_term)
-    handle = Entrez.esearch(db='nucleotide', term=search_term, retmax =10)
+    handle = Entrez.esearch(db='nucleotide', term=search_term, retmax =100)
     genome_ids = Entrez.read(handle)['IdList']
     records = len(genome_ids)
     bar = Bar('download plasmid sequences', max=records)
@@ -82,7 +82,7 @@ def downloadPla(email):
     # create multiple sequence fasta file
     filenames = glob.glob("pla/*.fasta")
     print("creating plasmid .fasta file")
-    with open('plasmids.fasta', 'w') as outfile:
+    with open('plasmid.fasta', 'w') as outfile:
         for fname in filenames:
             with open(fname) as infile:
                 for line in infile:
