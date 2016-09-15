@@ -3,6 +3,11 @@
 import sys, re, itertools
 
 try:
+    from progress.bar import Bar
+except ImportError:
+    print "This script requires progess to be installed!"
+
+try:
     import CGAT.FastaIterator as FastaIterator
     import CGAT.Experiment as E
 except ImportError:
@@ -51,6 +56,7 @@ def main(argv=None):
 
     # NB assume that non fasta files are caught by FastaIterator
     total_entries = 0
+   # bar = Bar('extract kmer information', max=len(FastaIterator.iterate(options.stdin)))
     for fasta in FastaIterator.iterate(options.stdin):
         total_entries += 1
         result[fasta.title] = {}
@@ -58,6 +64,8 @@ def main(argv=None):
             counts = [m.start()
                       for m in re.finditer("".join(kmer), fasta.sequence)]
             result[fasta.title][kmer] = len(counts)
+    #    bar.next()
+    #bar.finish()
 
     E.info("writing results")
     # write out the results
@@ -66,7 +74,6 @@ def main(argv=None):
     for kmer_counts in result.values():
         for kmer, count in kmer_counts.iteritems():
             rows.add("".join(kmer))
-
     # write header row
     options.stdout.write("kmer\t" + "\t".join(headers) + "\n")
 
