@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # iterate over all files in pos/ and neg/ folder and generate read-sized fragements
 
-import glob, os
+import glob, os, random
 
 try:
     from Bio import SeqIO
@@ -23,6 +23,26 @@ def renameheader(prefix, path):
 			record.description = prefix + ";" + str(i) 
 			SeqIO.write(record, corrected, 'fasta')
 			i += 1
+def balancesize(a,b):
+	inFiles = glob.glob('*.fas')
+	outFiles = []
+	num = 200
+	for i in range(len(inFiles)):
+		for k in range(3):
+		fNames = []
+		fSeqs = []
+		outFiles.append(file(str(inFiles[i])+'_'+'Rand_'+str(num)+'-'+str(k+1)+'.fasta', 'wt'))
+		# random subsampling without replacement
+		for line in open(inFiles[i]):
+			if (line[0] == '>'):
+				fNames.append(line)
+			else:
+				fSeqs.append(line)
+			curr = (len(outFiles)-1)
+			for j in range(num):
+				a = random.randint(0, (len(fNames)-1))
+				outFiles[curr].write(fNames.pop(a))
+				outFiles[curr].write(fSeqs.pop(a))
 
 def split(length, path, export, chunkspath):
 	print("create chunks of " + path)
