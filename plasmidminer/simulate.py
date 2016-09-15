@@ -14,6 +14,16 @@ def chunks(l, n):
 	for i in xrange(0, len(l), n):
 		yield l[i:i+n]
 
+def renameheader(prefix, path):
+	newpath = path + ".corrected.fasta"
+	with open(path) as original, open(newpath, 'w') as corrected:
+		records = SeqIO.parse(path, 'fasta')
+		i = 0
+		for record in records:
+			record.description = prefix + ";" + str(i) 
+			SeqIO.write(record, corrected, 'fasta')
+			i += 1
+
 def split(length, path, export, chunkspath):
 	print("create chunks of " + path)
 	for filename in glob.iglob(path):
