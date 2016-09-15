@@ -16,38 +16,32 @@ if not os.path.exists('plasmid_200.fasta'):
 if not os.path.exists('chromosome_200.fasta'):
 	simulate.split(200, 'chr/*.fasta', 'chromosome_200.fasta', 'chr/*.frag.fasta')
 
+print('rewrite fasta headers')
+simulate.renameheader('positive','plasmid_200.fasta')
+simulate.renameheader('negative','chromosome_200.fasta')
+
+print('merge pos/negative set to train.txt')
+filenames = ['plasmid_200.fasta.corrected.fasta', 'chromosome_200.fasta.corrected.fasta']
+with open('train.fasta', 'w') as outfile:
+	for fname in filenames:
+		with open(fname) as infile:
+			for line in infile:
+				outfile.write(line)
+
 # get feature matrix
-if not os.path.exists('plasmid_200.fasta.features'):
-	print('export features for plasmid_200.fasta')
-	os.system('python plasmidminer/features.py -I plasmid_200.fasta -s length -s na -s cpg > plasmid_200.fasta.features')
+if not os.path.exists('train.features'):
+	print('export features')
+	os.system('python plasmidminer/features.py -I train.fasta -s length -s na -s cpg > train.features')
+	print ('export csv')
+	with open("train.features", "r") as inp, open("train.features.csv", "w") as out:
+		w = csv.writer(out, delimiter=",")
+		w.writerows(x for x in csv.reader(inp, delimiter="\t"))
 
-if not os.path.exists('chromosome_200.fasta.features'):
-	print('export features for chromosome_200.fasta')
-	os.system('python plasmidminer/features.py -I chromosome_200.fasta -s length -s na -s cpg > chromosome_200.fasta.features')
+# compress
+if not os.path.exists('train.fasta.gz'):
+	print('compressing fasta file')
+	os.system("gzip --keep train.fasta")
 
-with open("plasmid_200.fasta.features", "r") as inp, open("plasmid_200.fasta.features.clean.csv", "w") as out:
-	w = csv.writer(out, delimiter=",")
-	w.writerows(x for x in csv.reader(inp, delimiter="\t"))
-
-with open("chromosome_200.fasta.features", "r") as inp, open("chromosome_200.fasta.features.clean.csv", "w") as out:
-	w = csv.writer(out, delimiter=",")
-	w.writerows(x for x in csv.reader(inp, delimiter="\t"))
-
-#if not os.path.exists('pos.train.csv'):
-#	print('create pos.csv')
-#	
-
-#if not os.path.exists('neg.train.csv'):
-#	with open('chromosome_200.fasta.features.clean.csv','r') as csvinput:
-#		print('create neg.csv')
-#		with open('neg.train.csv', 'w') as csvoutput:
-#			writer = csv.writer(csvoutput, lineterminator='\n')
-#			reader = csv.reader(csvinput)
-#			all = []
-#			row = next(reader)
-#			row.append('Type')
-#			all.append(row)
-#			for row in reader:
-#				row.append(row[0])
-#				all.append(row)
-#			writer.writerows(all)
+if not os.path.exists('train.features.kmer'):
+	print('get kmer profile')
+	os.system('python plasmidminer/kmer.py -I train.fasta.gz --kmer-size 4 > train.features.kmer')
