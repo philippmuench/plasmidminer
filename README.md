@@ -1,5 +1,17 @@
 # plasmidminer
 
+detection of plasmid fragments in metagenomic samples
+
+## usuage
+
+### train
+
+`python plasmidminer/plasmidminer`
+
+### predict
+
+not implemented yet
+
 ## install
 
 tested with python 2.7.12
