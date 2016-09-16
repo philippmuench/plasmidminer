@@ -20,29 +20,30 @@ def renameheader(prefix, path):
 		records = SeqIO.parse(path, 'fasta')
 		i = 0
 		for record in records:
-			record.description = prefix + ";" + str(i) 
-			SeqIO.write(record, corrected, 'fasta')
+			corrected.write(">" + prefix + "-" + str(i) + "\n" + str(record.seq) + "\n")
+		#	record.description = prefix + ";" + str(i) 
+		#	SeqIO.write(record, corrected, 'fasta')
 			i += 1
-def balancesize(a,b):
-	inFiles = glob.glob('*.fas')
+
+def balancesize(a,b, num):
+	inFiles =  [a,b]
 	outFiles = []
-	num = 200
 	for i in range(len(inFiles)):
 		for k in range(3):
-		fNames = []
-		fSeqs = []
-		outFiles.append(file(str(inFiles[i])+'_'+'Rand_'+str(num)+'-'+str(k+1)+'.fasta', 'wt'))
-		# random subsampling without replacement
-		for line in open(inFiles[i]):
-			if (line[0] == '>'):
-				fNames.append(line)
-			else:
-				fSeqs.append(line)
-			curr = (len(outFiles)-1)
-			for j in range(num):
-				a = random.randint(0, (len(fNames)-1))
-				outFiles[curr].write(fNames.pop(a))
-				outFiles[curr].write(fSeqs.pop(a))
+			fNames = []
+			fSeqs = []
+			outFiles.append(file(str(inFiles[i])+'_'+'rand_'+str(num)+'-'+str(k+1)+'.fasta', 'wt'))
+			# random subsampling without replacement
+			for line in open(inFiles[i]):
+				if (line[0] == '>'):
+					fNames.append(line)
+				else:
+					fSeqs.append(line)
+				curr = (len(outFiles)-1)
+				for j in range(num):
+					a = random.randint(0, (len(fNames)-1))
+					outFiles[curr].write(fNames.pop(a))
+					outFiles[curr].write(fSeqs.pop(a))
 
 def split(length, path, export, chunkspath):
 	print("create chunks of " + path)
