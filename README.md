@@ -2,22 +2,13 @@
 
 detection of plasmid fragments in metagenomic samples
 
-## usuage
-
-### train
-
-`python plasmidminer/plasmidminer`
-
-### predict
-
-not implemented yet
-
 ## install
-
+you may want use virtualenv:
+`virtualenv env`
+`source env/bin/activate`
+to install plasmidminer just type
+`python setup.py install`
 tested with python 2.7.12
 
-```
-virtualenv env
-source env/bin/activate
-env/bin/pip install -r requirements.txt
-```
+### train
+`python plasmidminer/plasmidminer`
