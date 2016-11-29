@@ -10,5 +10,8 @@ to install plasmidminer just type
 `python setup.py install`
 tested with python 2.7.12
 
+
+`sudo apt-get install libmysqlclient-dev libpq-dev libboost-all-dev`
+
 ### train
 `python plasmidminer/plasmidminer`
