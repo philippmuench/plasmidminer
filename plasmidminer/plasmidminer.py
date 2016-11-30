@@ -4,44 +4,44 @@ import download, simulate, features
 
 # download training/testing dataset
 email = "philipp.muench@helmholtz-hzi.de"
-if not os.path.exists('chr'):
+if not os.path.exists('dat/chr'):
 	download.downloadChr(email)
-if not os.path.exists('pla'):
+if not os.path.exists('dat/pla'):
 	download.downloadPla(email)
 
 # get read sized chunks
-if not os.path.exists('plasmid_200.fasta'):
-	simulate.split(200, 'pla/*.fasta', 'plasmid_200.fasta', 'pla/*.frag.fasta')
+if not os.path.exists('dat/plasmid_200.fasta'):
+	simulate.split(200, 'dat/pla/*.fasta', 'dat/plasmid_200.fasta', 'dat/pla/*.frag.fasta')
 
-if not os.path.exists('chromosome_200.fasta'):
-	simulate.split(200, 'chr/*.fasta', 'chromosome_200.fasta', 'chr/*.frag.fasta')
+if not os.path.exists('dat/chromosome_200.fasta'):
+	simulate.split(200, 'dat/chr/*.fasta', 'dat/chromosome_200.fasta', 'dat/chr/*.frag.fasta')
 
 print('rewrite fasta headers')
-simulate.renameheader('positive','plasmid_200.fasta')
-simulate.renameheader('negative','chromosome_200.fasta')
+simulate.renameheader('positive','dat/plasmid_200.fasta')
+simulate.renameheader('negative','dat/chromosome_200.fasta')
 
 print('merge pos/negative set to train.txt')
-filenames = ['plasmid_200.fasta.corrected.fasta', 'chromosome_200.fasta.corrected.fasta']
-with open('train.fasta', 'w') as outfile:
+filenames = ['dat/plasmid_200.fasta.corrected.fasta', 'dat/chromosome_200.fasta.corrected.fasta']
+with open('dat/train.fasta', 'w') as outfile:
 	for fname in filenames:
 		with open(fname) as infile:
 			for line in infile:
 				outfile.write(line)
 
 # get feature matrix
-if not os.path.exists('train.features'):
+if not os.path.exists('dat/train.features'):
 	print('export features')
-	os.system('python plasmidminer/features.py -I train.fasta -s length -s na -s cpg > train.features')
+	os.system('python plasmidminer/features.py -I dat/train.fasta -s length -s na -s cpg > dat/train.features')
 	print ('export csv')
-	with open("train.features", "r") as inp, open("train.features.csv", "w") as out:
+	with open("dat/train.features", "r") as inp, open("dat/train.features.csv", "w") as out:
 		w = csv.writer(out, delimiter=",")
 		w.writerows(x for x in csv.reader(inp, delimiter="\t"))
 
 # compress
-if not os.path.exists('train.fasta.gz'):
+if not os.path.exists('dat/train.fasta.gz'):
 	print('compressing fasta file')
-	os.system("gzip --keep train.fasta")
+	os.system("gzip --keep dat/train.fasta")
 
-if not os.path.exists('train.features.kmer'):
+if not os.path.exists('dat/train.features.kmer'):
     print('get kmer profile')
-    os.system('src/fasta2kmers2 -i train.fasta -f train.features.kmer -j 4 -k 5 -h 1 -s 0')
+    os.system('src/fasta2kmers2 -i dat/train.fasta -f dat/train.features.kmer -j 4 -k 5 -h 1 -s 0')
