@@ -2,7 +2,7 @@
 import os, csv
 import download, simulate, features
 
-# download training/learning dataset
+# download training/testing dataset
 email = "philipp.muench@helmholtz-hzi.de"
 if not os.path.exists('chr'):
 	download.downloadChr(email)
@@ -43,5 +43,5 @@ if not os.path.exists('train.fasta.gz'):
 	os.system("gzip --keep train.fasta")
 
 if not os.path.exists('train.features.kmer'):
-	print('get kmer profile')
-	os.system('python plasmidminer/kmer.py -I train.fasta.gz --kmer-size 4 > train.features.kmer')
+    print('get kmer profile')
+    os.system('src/fasta2kmers2 -i train.fasta -f train.features.kmer -j 4 -k 5 -h 1 -s 0')
