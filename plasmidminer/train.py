@@ -1,83 +1,38 @@
-from sklearn.ensemble import RandomForestClassifier
-from sklearn import svm
-import numpy as np
-import matplotlib.pyplot as plt
-from numpy import genfromtxt, savetxt, recfromcsv
-from sklearn.preprocessing import OneHotEncoder
+#!/usr/bin/python
 
-# remove a column from a structured numpy array based on column name
-def remove_field_name(a, name):
-    names = list(a.dtype.names)
-    if name in names:
-        names.remove(name)
-    b = a[names]
-    return b
+try:
+import pandas as pd
+from sklearn.cross_validation import train_test_split
+except ImportError:
+    print "This script requires pandasand sklearn to be installed!"
 
-d = recfromcsv('/home/pmuench/github.com/philippmuench/plasmidminer/features.small')
-d.shape
+# pd.set_option('display.mpl_style', 'default') # jupyter
 
-# iterate over first column and extract the label and id
-labels=[]
-for x in np.nditer(d["lab"]):
-    str=np.array_str(x)
-    x = str.split("-")[0]
-    labels.append(x)
+# features are located at ../dat/train.features.clear2.csv
+# kmers are located at ../dat/train.features.kmer
+def creatematrix(features, kmer):
+	stat = pd.read_csv(features, sep=",")
+	kmer = pd.read_csv(kmer, sep="\t", header = None)
 
-#
-train = remove_field_name(d, "lab")
+	# concat
+	df = pd.concat([stat.reset_index(drop=True), kmer], axis=1)
 
-# convert the structured numpy array to a normal numpy array
-ntrain = train.view(np.float64).reshape(train.shape + (-1,))
-
-rf = RandomForestClassifier(n_estimators=100)
-forest = rf.fit(ntrain, labels)
-
-output = forest.predict(ntrain)
+	# prepare matrix
+	id2 = df.id.str.split("-",expand=True) # split the string to get label
+	df2 = pd.concat([id2, df], axis=1)
+	all = df2.drop(df2.columns[[1,2]], 1)
+	all_complete = all[(all.length == 200)] # keep only complete fragments
+	all_complete.columns.values[0] = "label"
+	# generate test/train set
+	y = all_complete['label'].tolist() # extract label
+	X = all_complete.drop(all_complete.columns[[0]], 1) # remove label
+	return X,y
 
 
-# NOTE: Setting the `warm_start` construction parameter to `True` disables
-# support for parallelized ensembles but is necessary for tracking the OOB
-# error trajectory during training.
-ensemble_clfs = [
-    ("RandomForestClassifier, max_features='sqrt'",
-        RandomForestClassifier(warm_start=True, oob_score=True,
-                               max_features="sqrt",
-                               random_state=RANDOM_STATE)),
-    ("RandomForestClassifier, max_features='log2'",
-        RandomForestClassifier(warm_start=True, max_features='log2',
-                               oob_score=True,
-                               random_state=RANDOM_STATE)),
-    ("RandomForestClassifier, max_features=None",
-        RandomForestClassifier(warm_start=True, max_features=None,
-                               oob_score=True,
-                               random_state=RANDOM_STATE))
-]
+# generate balanced subsets 
+#rand= all_complete.sample(n=3)
+
+# generate cross validation datasets, split x,y arrays into 30percent test data and 70 percent training data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
 
 
-
-# Map a classifier name to a list of (<n_estimators>, <error rate>) pairs.
-error_rate = OrderedDict((label, []) for label, _ in ensemble_clfs)
-
-# Range of `n_estimators` values to explore.
-min_estimators = 15
-max_estimators = 175
-
-for label, clf in ensemble_clfs:
-    for i in range(min_estimators, max_estimators + 1):
-        clf.set_params(n_estimators=i)
-        clf.fit(ntrain, labels)
-
-        # Record the OOB error for each `n_estimators=i` setting.
-        oob_error = 1 - clf.oob_score_
-        error_rate[label].append((i, oob_error))
-
-# Generate the "OOB error rate" vs. "n_estimators" plot.
-for label, clf_err in error_rate.items():
-    xs, ys = zip(*clf_err)
-    plt.plot(xs, ys, label=label)
-
-plt.xlim(min_estimators, max_estimators)
-plt.xlabel("n_estimators")
-plt.ylabel("OOB error rate")
-plt.legend(loc="upper right")
-plt.show()
