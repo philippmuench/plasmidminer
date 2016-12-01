@@ -20,6 +20,11 @@ def creatematrix(features, kmer):
 	all = df2.drop(df2.columns[[1,2]], 1)
 	all_complete = all[(all.length == 200)] # keep only complete fragments
 	all_complete.columns.values[0] = "label"
+    # encoding class labels as integers
+    all_complete.loc[all_complete.label == 'positive', 'label'] = 1
+    all_complete.loc[all_complete.label == 'negative', 'label'] = 0
+
+    all_complete = all_complete.dropna(axis=1) # remove columns with NAN
 	return all_complete
 
 print("load data")
@@ -43,5 +48,8 @@ sc.fit(X_train) # estimate sample mean and standard deviation for each feature d
 X_train_std = sc.transform(X_train) # use same scaling parameters to standardize the test set so that both the values in the trainign and test dataset are comparable to each other
 X_test_std = sc.transform(X_test)
 
+stdsc = StandardScaler()
+X_train_std = stdsc.fit_transform(X_train)
+X_test_std = stdsc.transform(X_test)
 
 print("finished!")
