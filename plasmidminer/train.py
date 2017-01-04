@@ -6,6 +6,7 @@ import operator
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import cPickle
 
 try:
 	from sklearn.linear_model import LogisticRegression
@@ -174,68 +175,47 @@ X = dat.drop(dat.columns[[0]], 1) # remove label
 
 # generate cross validation datasets, split x,y arrays into 30percent test data and 70 percent training data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
-
-# scale data
-sc = StandardScaler()
-sc.fit(X_train) # estimate sample mean and standard deviation for each feature dimension from the traing data
-X_train_std = sc.transform(X_train) # use same scaling parameters to standardize the test set so that both the values in the trainign and test dataset are comparable to each other
-X_test_std = sc.transform(X_test)
-
-#stdsc = StandardScaler()
-#X_train_std = stdsc.fit_transform(X_train)
-#X_test_std = stdsc.transform(X_test)
+print("train/test set generated")
 
 
-clf1 = LogisticRegression(penalty='l2', 
-                          C=0.001,
-                          random_state=0)
-
-clf2 = RandomForestClassifier(max_depth=10)
-
+# build models
+# specify classifiers
+clf1 = LogisticRegression(penalty='l2', C=0.001, random_state=0)
+clf2 = RandomForestClassifier(n_estimators=500)
+clf3 = SVC(kernel='rbf',random_state=0, gamma=1.0, C=1.0)
+#eclf = SVC(kernel='rbf',random_state=0, gamma=100.0, C=1.0)
 #clf3 = svm.SVC(kernel='linear')
 
-#clf3 = SVC(kernel='rbf',random_state=0, gamma=1.0, C=1.0)
+# specify pipelines
+pipe1 = Pipeline([['sc', StandardScaler()], ['clf', clf1]])
+pipe3 = Pipeline([['sc', StandardScaler()], ['clf', clf3]])
 
-#eclf = SVC(kernel='rbf',random_state=0, gamma=100.0, C=1.0)
+clf_labels = ['Logistic Regression', 'Random Forest', 'SVM (RBF)']
 
-
-pipe1 = Pipeline([['sc', StandardScaler()],
-                  ['clf', clf1]])
-
-#pipe3 = Pipeline([['sc', StandardScaler()],
-#                  ['clf', clf3]])
-
-clf_labels = ['Logistic Regression', 'Random Forest']
-
-#print('5-fold cross validation:\n')
-#for clf, label in zip([pipe1, clf2], clf_labels):
-#    scores = cross_val_score(estimator=clf,
-#                             X=X_train,
-#                             y=y_train,
-#                             cv=5,
-#                             scoring='roc_auc')
-#    print("ROC AUC: %0.2f (+/- %0.2f) [%s]"
-#          % (scores.mean(), scores.std(), label))
-    
 # Majority Rule (hard) Voting
-
-mv_clf = MajorityVoteClassifier(classifiers=[pipe1, clf2])
+mv_clf = MajorityVoteClassifier(classifiers=[pipe1, clf2, pipe3])
 
 clf_labels += ['Majority Voting']
-all_clf = [pipe1, clf2, mv_clf]
+all_clf = [pipe1, clf2, pipe3, mv_clf]
 
 for clf, label in zip(all_clf, clf_labels):
     scores = cross_val_score(estimator=clf,
                              X=X_train,
                              y=y_train,
-                             cv=5,
+                             cv=10,
                              scoring='roc_auc')
     print("ROC AUC: %0.2f (+/- %0.2f) [%s]"
           % (scores.mean(), scores.std(), label))
 
+# save model
+with open('log_regression.pkl', 'wb') as fid:
+    cPickle.dump(clf1, fid) 
+with open('rf.pkl', 'wb') as fid:
+    cPickle.dump(clf2, fid) 
+with open('SVM_rbf.pkl', 'wb') as fid:
+    cPickle.dump(clf3, fid) 
+
 # plot ROC curve
-
-
 colors = ['black', 'orange', 'blue', 'green']
 linestyles = [':', '--', '-.', '-']
 for clf, label, clr, ls \
@@ -266,6 +246,6 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 
 # plt.tight_layout()
-# plt.savefig('./figures/roc.png', dpi=300)
+plt.savefig('roc.png', dpi=300)
 plt.show()
 
