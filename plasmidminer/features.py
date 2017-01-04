@@ -17,7 +17,7 @@ def clearit(inputFileName, outputFileName):
     for line in input:
         if not line.lstrip().startswith("#"):
             if not line.lstrip().startswith('"#'):
-                output.write(line)
+                    output.write(line)
     input.close()
     output.close()
 

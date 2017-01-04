@@ -30,12 +30,14 @@ with open('dat/train.fasta', 'w') as outfile:
 
 # get feature matrix
 if not os.path.exists('dat/train.features'):
-	print('export features')
-	os.system('python plasmidminer/features.py -I dat/train.fasta -s length -s na -s cpg > dat/train.features')
-	print ('export csv')
-	with open("dat/train.features", "r") as inp, open("dat/train.features.csv", "w") as out:
-		w = csv.writer(out, delimiter=",")
-		w.writerows(x for x in csv.reader(inp, delimiter="\t"))
+    print('export features')
+    os.system('python plasmidminer/features.py -I dat/train.fasta -s length -s na -s cpg > dat/train.features')
+    print ('export csv')
+    with open("dat/train.features", "r") as inp, open("dat/train.features.csv", "w") as out:
+        w = csv.writer(out, delimiter=",")
+        w.writerows(x for x in csv.reader(inp, delimiter="\t"))        
+    features.clearit("dat/train.features.csv", "dat/train.features.clear.csv")
+    os.system("tail -n +2 dat/train.features.clear.csv > dat/train.features.clear2.csv")
 
 # compress
 if not os.path.exists('dat/train.fasta.gz'):
@@ -44,4 +46,8 @@ if not os.path.exists('dat/train.fasta.gz'):
 
 if not os.path.exists('dat/train.features.kmer'):
     print('get kmer profile')
-    os.system('src/fasta2kmers2 -i dat/train.fasta -f dat/train.features.kmer -j 4 -k 5 -h 1 -s 0')
+    os.system('src/fasta2kmers2 -i dat/train.fasta -f dat/train.features.kmer -j 4 -k 5 -s 0')
+    with open("dat/train.features.kmer", "r") as inp, open("dat/train.features.kmer.csv", "w") as out:
+            w = csv.writer(out, delimiter=",")
+            w.writerows(x for x in csv.reader(inp, delimiter="\t"))
+

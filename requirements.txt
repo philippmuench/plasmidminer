@@ -1,5 +1,5 @@
 progress
-numpy
-biophyton
+numpy>=1.6
+biopython>=1.67
 CGAT==0.2.5
 Cython==0.24.1
