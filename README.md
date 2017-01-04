@@ -2,6 +2,21 @@
 
 detection of plasmid fragments in metagenomic samples
 
+## usuage
+
+download the dataset from ncbi and train/evaluate model
+
+```
+python plasmidminer/plasmidminer.py -h
+usage: plasmidminer.py [-h] [-c CHUNKSIZE] [--email EMAIL] [--version]
+
+optional arguments:
+  -h, --help     show this help message and exit
+  -c CHUNKSIZE   Chunk size in nt
+  --email EMAIL  email adress needed for ncbi file download
+  --version      show program's version number and exit
+```
+
 ## install
 you may want use virtualenv:
 
