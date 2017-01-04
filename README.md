@@ -17,6 +17,16 @@ optional arguments:
   --version      show program's version number and exit
 ```
 
+output:
+
+```
+ROC AUC: 0.86 (+/- 0.01) [Logistic Regression, saved to logreg.pcl] 
+ROC AUC: 0.93 (+/- 0.01) [Random Forest, saved to rf.pcl]
+```
+plus ROC curves under roc.png
+
+
+
 ## install
 you may want use virtualenv:
 
