@@ -4,7 +4,7 @@ detection of plasmid fragments in metagenomic samples
 
 ## usuage
 
-download the dataset from ncbi and train/evaluate model
+this script downloads the train/test dataset from ncbi and creates various models
 
 ```
 python plasmidminer/plasmidminer.py -h
