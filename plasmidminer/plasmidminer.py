@@ -3,26 +3,33 @@ import os, csv, sys
 import download, simulate, features
 import argparse
 
-def loaddata(args):
-	#email = "philipp.muench@helmholtz-hzi.de"
+try:
+    from Bio import Entrez
+except ImportError:
+    print "This script requires BioPython to be installed!"
+
+
+def loaddata():
+	email = "philipp.muench@helmholtz-hzi.de"
 	if not os.path.exists('dat/chr'):
-		download.downloadChr(args.email)
+		download.downloadChr()
 	else:
 		print("WARNING: dat/chr already exists. Skipping this step.")
 	if not os.path.exists('dat/pla'):
-		download.downloadPla(args.email)
+		download.downloadPla()
 	else:
 		print("WARNING: dat/pla already exists. Skipping this step.")
 
 def getchunks():
+	args.chunksize = 200
 	if not os.path.exists('dat/plasmid_chunks.fasta'):
-		simulate.split(int(results.chunksize), 'dat/pla/*.fasta', 'dat/plasmid_chunks.fasta', 'dat/pla/*.frag.fasta')
+		simulate.split(int(args.chunksize), 'dat/pla/*.fasta', 'dat/plasmid_chunks.fasta', 'dat/pla/*.frag.fasta')
 		print('rewrite fasta headers')
 		simulate.renameheader('positive','dat/plasmid_chunks.fasta')
 	else:
 		print("WARNING: dat/plasmid_chunks.fasta already exists. Skipping this step.")
 	if not os.path.exists('dat/chromosome_chunks.fasta'):
-		simulate.split(int(results.chunksize), 'dat/chr/*.fasta', 'dat/chromosome_chunks.fasta', 'dat/chr/*.frag.fasta')
+		simulate.split(int(args.chunksize), 'dat/chr/*.fasta', 'dat/chromosome_chunks.fasta', 'dat/chr/*.frag.fasta')
 		print('rewrite fasta headers')
 		simulate.renameheader('negative','dat/chromosome_chunks.fasta')
 	else:
@@ -83,8 +90,8 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	print 'chunk size     =', args.chunksize
 	print 'email     =', args.email
-
-	loaddata(args)
+ 	Entrez.email = args.email
+	loaddata()
 	getchunks()
 	getstatfeatures()
 	compress()

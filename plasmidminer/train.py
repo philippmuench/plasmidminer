@@ -11,7 +11,7 @@ import cPickle
 try:
 	from sklearn.linear_model import LogisticRegression
 	from sklearn.tree import DecisionTreeClassifier
-	from sklearn.neighbors import KNeighborsClassifier 
+	from sklearn.neighbors import KNeighborsClassifier
 	from sklearn.pipeline import Pipeline
 	from sklearn.ensemble import VotingClassifier, RandomForestClassifier
 	from sklearn import svm
@@ -28,7 +28,9 @@ try:
 	from sklearn.metrics import roc_curve
 	from sklearn.metrics import auc
 except ImportError:
-	print "This script requires pandasand sklearn to be installed!"
+	print "This script requires sklearn to be installed!"
+
+
 
 # pd.set_option('display.mpl_style', 'default') # jupyter
 
@@ -163,11 +165,13 @@ class MajorityVoteClassifier(BaseEstimator,
 
 print("load data")
 dat = creatematrix('dat/train.features.clear2.csv', 'dat/train.features.kmer')
-
 print("split data")
 # split to test and training set
 y = dat['label'].tolist() # extract label
 X = dat.drop(dat.columns[[0]], 1) # remove label
+
+
+
 
 # TODO(pmuench): generate balanced subsets
 # get max occurence or labels and use it to draw random subsample from it 
@@ -198,6 +202,7 @@ mv_clf = MajorityVoteClassifier(classifiers=[pipe1, clf2, pipe3])
 clf_labels += ['Majority Voting']
 all_clf = [pipe1, clf2, pipe3, mv_clf]
 
+print("build models")
 for clf, label in zip(all_clf, clf_labels):
     scores = cross_val_score(estimator=clf,
                              X=X_train,
@@ -208,12 +213,17 @@ for clf, label in zip(all_clf, clf_labels):
           % (scores.mean(), scores.std(), label))
 
 # save model
+print("save model")
 with open('log_regression.pkl', 'wb') as fid:
     cPickle.dump(clf1, fid) 
 with open('rf.pkl', 'wb') as fid:
     cPickle.dump(clf2, fid) 
 with open('SVM_rbf.pkl', 'wb') as fid:
     cPickle.dump(clf3, fid) 
+
+
+print("generate ROC curve")
+
 
 # plot ROC curve
 colors = ['black', 'orange', 'blue', 'green']
@@ -248,4 +258,9 @@ plt.ylabel('True Positive Rate')
 # plt.tight_layout()
 plt.savefig('roc.png', dpi=300)
 plt.show()
+
+print("finished")
+
+
+
 
