@@ -26,6 +26,8 @@ ROC AUC: 0.71 (+/- 0.01) [SVM]
 ROC AUC: 0.93 (+/- 0.01) [Majority Voting]
 ```
 
+![alt text](index.png "ROC")
+
 ## install
 you may want use virtualenv:
 
@@ -42,4 +44,3 @@ tested with python 2.7.12
 ### train
 `python plasmidminer/plasmidminer`
 
-![alt text](index.png "oob")
