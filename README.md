@@ -2,7 +2,7 @@
 
 detection of plasmid fragments in metagenomic samples
 
-## usuage
+## generation of datasets
 
 this script downloads the train/test dataset from ncbi and creates various models
 
@@ -17,16 +17,6 @@ optional arguments:
   --version      show program's version number and exit
 ```
 
-output:
-on a balanced subset with 3k instances (E. coli) 200nt long:
-```
-ROC AUC: 0.86 (+/- 0.02) [Logistic Regression]
-ROC AUC: 0.92 (+/- 0.01) [Random Forest]
-ROC AUC: 0.71 (+/- 0.01) [SVM]
-ROC AUC: 0.93 (+/- 0.01) [Majority Voting]
-```
-
-![alt text](index.png "ROC")
 
 ## train
 to generate the pkl object for classification please run
@@ -42,6 +32,17 @@ optional arguments:
   --balanced
   --version            show program's version number and exit
 ```
+
+output:
+on a balanced subset with 3k instances (E. coli) 200nt long:
+```
+ROC AUC: 0.86 (+/- 0.02) [Logistic Regression]
+ROC AUC: 0.92 (+/- 0.01) [Random Forest]
+ROC AUC: 0.71 (+/- 0.01) [SVM]
+ROC AUC: 0.93 (+/- 0.01) [Majority Voting]
+```
+
+![alt text](index.png "ROC")
 
 ## parameter tuning
 best SVN paramets based on grid search (precision/recall scores)
