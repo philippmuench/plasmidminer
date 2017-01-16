@@ -2,7 +2,7 @@
 
 detection of plasmid fragments in metagenomic samples
 
-# manuscript
+# draft manuscript
 https://www.overleaf.com/7758191crzmzwwcxftk
 
 ## generation of datasets
