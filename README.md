@@ -28,6 +28,32 @@ ROC AUC: 0.93 (+/- 0.01) [Majority Voting]
 
 ![alt text](index.png "ROC")
 
+## train
+to generate the pkl object for classification please run
+```
+usage: train_svm.py [-h] [--model MODEL] [--features FEATURES] [--kmers KMERS]
+                    [--balanced] [--version]
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --model MODEL        Patho to model file.
+  --features FEATURES  Path to features matrix
+  --kmers KMERS        Path to features matrix
+  --balanced
+  --version            show program's version number and exit
+```
+
+## parameter tuning
+best SVN paramets based on grid search (precision/recall scores)
+
+`python plasmidminer/svm_grid.py --balanced`
+
+```
+Best parameters set found on development set:
+
+{'kernel': 'rbf', 'C': 1, 'gamma': 0.0001}
+```
+
 ## install
 you may want use virtualenv:
 
