@@ -2,6 +2,9 @@
 
 detection of plasmid fragments in metagenomic samples
 
+# manuscript
+https://www.overleaf.com/7758191crzmzwwcxftk
+
 ## generation of datasets
 
 this script downloads the train/test dataset from ncbi and creates various models
