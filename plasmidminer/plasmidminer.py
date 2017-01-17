@@ -2,7 +2,7 @@
 import os, csv, sys
 import download, simulate, features
 import argparse
-
+from Bio import SeqIO
 try:
     from Bio import Entrez
 except ImportError:
@@ -35,8 +35,10 @@ def getchunks():
 	else:
 		print("WARNING: dat/chromosome_chunks.fasta already exists. Skipping this step.")
 	print('merge pos/negative set to train.txt')
+	
+def createMerged():
 	if not os.path.exists('dat/train.fasta'):
-		filenames = ['dat/plasmid_chunks.fasta.corrected.fasta', 'dat/chromosome_chunks.fasta.corrected.fasta']
+		filenames = ['dat/plasmid_chunks.fasta.corrected.fasta.clear', 'dat/chromosome_chunks.fasta.corrected.fasta.clear']
 		with open('dat/train.fasta', 'w') as outfile:
 			for fname in filenames:
 				with open(fname) as infile:
@@ -48,7 +50,7 @@ def getchunks():
 def getstatfeatures():
 	if not os.path.exists('dat/train.features'):
 	    print('export features')
-	    os.system('python plasmidminer/features.py -I dat/clear_train.fasta -s length -s na -s cpg > dat/train.features')
+	    os.system('python plasmidminer/features.py -I dat/train.fasta -s length -s na -s cpg > dat/train.features')
 	    print ('export csv')
 	    with open("dat/train.features", "r") as inp, open("dat/train.features.csv", "w") as out:
 		w = csv.writer(out, delimiter=",")
@@ -59,10 +61,10 @@ def getstatfeatures():
 def compress():
 	if not os.path.exists('dat/train.fasta.gz'):
 		print('compressing fasta file')
-		os.system("gzip --keep dat/clear_train.fasta")
+		os.system("gzip --keep dat/train.fasta")
 	if not os.path.exists('dat/train.features.kmer'):
 	    print('get kmer profile')
-	    os.system('src/fasta2kmers2 -i dat/clear_train.fasta -f dat/train.features.kmer -j 4 -k 5 -s 0')
+	    os.system('src/fasta2kmers2 -i dat/train.fasta -f dat/train.features.kmer -j 4 -k 5 -s 0')
 	    with open("dat/train.features.kmer", "r") as inp, open("dat/train.features.kmer.csv", "w") as out:
 		    w = csv.writer(out, delimiter=",")
 		    w.writerows(x for x in csv.reader(inp, delimiter="\t"))
@@ -87,19 +89,19 @@ def sequence_cleaner(fasta_file, min_length=0, por_n=100):
 		else:
 			sequences[sequence] += "_" + seq_record.id
 	# Create a file in the same directory where you ran this script
-	output_file = open("clear_" + fasta_file, "w+")
+	output_file = open(fasta_file + ".clear", "w+")
 	# Just read the hash table and write on the file as a fasta format
 	for sequence in sequences:
-	output_file.write(">" + sequences[sequence] + "\n" + sequence + "\n")
+		output_file.write(">" + sequences[sequence] + "\n" + sequence + "\n")
 	output_file.close()
-	print("CLEAN!!!\nPlease check clear_" + fasta_file)
+	print("fasta file cleaned: " + fasta_file)
 
 
 def getkmerprofile():
 	# get feature matrix
 	print('export features')
 	if not os.path.exists('dat/train.features'):
-	    os.system('python plasmidminer/features.py -I dat/clear_train.fasta -s length -s na -s cpg > dat/train.features')
+	    os.system('python plasmidminer/features.py -I dat/train.fasta -s length -s na -s cpg > dat/train.features')
 	    print ('export csv')
 	    with open("dat/train.features", "r") as inp, open("dat/train.features.csv", "w") as out:
 		w = csv.writer(out, delimiter=",")
@@ -120,8 +122,10 @@ if __name__ == "__main__":
 	print 'email     =', args.email
  	Entrez.email = args.email
 	loaddata()
-	getchunsks()
-	sequence_cleaner('dat/train.fasta', args.chunksize, por_n=100)
+	getchunks()
+        sequence_cleaner('dat/chromosome_chunks.fasta.corrected.fasta',args.chunksize, por_n=100)
+	sequence_cleaner('dat/plasmid_chunks.fasta.corrected.fasta', args.chunksize, por_n=100)
+	createMerged()
 	getstatfeatures()
 	compress()	
 	getkmerprofile()
