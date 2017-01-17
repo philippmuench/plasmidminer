@@ -48,7 +48,7 @@ def getchunks():
 def getstatfeatures():
 	if not os.path.exists('dat/train.features'):
 	    print('export features')
-	    os.system('python plasmidminer/features.py -I dat/train.fasta -s length -s na -s cpg > dat/train.features')
+	    os.system('python plasmidminer/features.py -I dat/clear_train.fasta -s length -s na -s cpg > dat/train.features')
 	    print ('export csv')
 	    with open("dat/train.features", "r") as inp, open("dat/train.features.csv", "w") as out:
 		w = csv.writer(out, delimiter=",")
@@ -59,10 +59,10 @@ def getstatfeatures():
 def compress():
 	if not os.path.exists('dat/train.fasta.gz'):
 		print('compressing fasta file')
-		os.system("gzip --keep dat/train.fasta")
+		os.system("gzip --keep dat/clear_train.fasta")
 	if not os.path.exists('dat/train.features.kmer'):
 	    print('get kmer profile')
-	    os.system('src/fasta2kmers2 -i dat/train.fasta -f dat/train.features.kmer -j 4 -k 5 -s 0')
+	    os.system('src/fasta2kmers2 -i dat/clear_train.fasta -f dat/train.features.kmer -j 4 -k 5 -s 0')
 	    with open("dat/train.features.kmer", "r") as inp, open("dat/train.features.kmer.csv", "w") as out:
 		    w = csv.writer(out, delimiter=",")
 		    w.writerows(x for x in csv.reader(inp, delimiter="\t"))
@@ -120,9 +120,9 @@ if __name__ == "__main__":
 	print 'email     =', args.email
  	Entrez.email = args.email
 	loaddata()
-	getchunks()
-	getstatfeatures()
-	compress()
+	getchunsks()
 	sequence_cleaner('dat/train.fasta', args.chunksize, por_n=100)
+	getstatfeatures()
+	compress()	
 	getkmerprofile()
 
