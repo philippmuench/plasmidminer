@@ -16,7 +16,7 @@ from sklearn.pipeline import Pipeline
 from sklearn import svm
 from sklearn.svm import SVC
 from sklearn.model_selection import cross_val_score
-from skrvm import RVC
+#from skrvm import RVC
 
 class MajorityVoteClassifier(BaseEstimator,
                              ClassifierMixin):
@@ -180,7 +180,7 @@ print("train/test set generated")
 
 print('training...')
 
-clf = SVC(kernel='rbf',random_state=0, gamma=1.0, C=1.0, probability=True)
+clf = SVC(kernel='rbf',random_state=0, gamma=1e-3, C=1.0, probability=True)
 #clf2 = RVC()
 pipe = Pipeline([['sc', StandardScaler()],
                   ['clf', clf]])

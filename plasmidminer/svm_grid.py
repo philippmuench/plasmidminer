@@ -1,27 +1,27 @@
 #!/usr/bin/python
-from __future__ import print_function
+
+#from __future__ import print_function
 try:
 	import pandas as pd
 except ImportError:
-    print "This script requires pandas to be installed!"
-
+	print("This script requires pandas to be installed!")
 try:
 	import numpy as np
 except ImportError:
-    print "This script requires numpy to be installed!"
+	print("This script requires numpy to be installed!")
 
 try:
 	import operator
 except ImportError:
-    print "This script requires numpy to be installed!"
+	print("This script requires numpy to be installed!")
 try:
 	import cPickle
 except ImportError:
-    print "This script requires numpy to be installed!"
+	print("This script requires numpy to be installed!")
 try:
 	import argparse
 except ImportError:
-    print "This script requires numpy to be installed!"
+	print("This script requires numpy to be installed!")
 try:
 	from sklearn import datasets
 	from sklearn.model_selection import train_test_split
@@ -41,11 +41,11 @@ try:
 	from sklearn.svm import SVC
 	from sklearn.model_selection import cross_val_score
 except ImportError:
-    print "This script requires sklearn to be installed!"
-try:
-	from skrvm import RVC
-except ImportError:
-    print "This script requires skrvm to be installed!"
+	print("This script requires sklearn to be installed!")
+#try:
+#	from skrvm import RVC
+#except ImportError:
+#	print("This script requires skrvm to be installed!")
 
 
 class MajorityVoteClassifier(BaseEstimator,
@@ -223,7 +223,7 @@ if __name__ == "__main__":
 	tuned_parameters = [{'kernel': ['rbf'], 'gamma': [100, 10, 1, 0.1, 1e-2 ,1e-3, 1e-4, 1e-5],
 		             'C': [1, 10, 100, 1000, 10000]},
 		            {'kernel': ['linear'], 'C': [0.01, 0.1, 1, 10, 100, 1000, 10000]},
-		            {'kernel': ['poly'], 'degree': [1, 3, 5, 10, 50]]
+		            {'kernel': ['poly'], 'degree': [1, 3, 5, 10, 50]}]
 
 	for score in scores:
 	    print("# Tuning hyper-parameters for %s" % score)
