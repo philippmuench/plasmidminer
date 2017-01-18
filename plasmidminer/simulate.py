@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # iterate over all files in pos/ and neg/ folder and generate read-sized fragements
 
-import glob, os, random
+import glob, os, random, sys
+from termcolor import colored
 
 try:
     from Bio import SeqIO
@@ -9,6 +10,12 @@ try:
     from Bio.SeqRecord import SeqRecord
 except ImportError:
     print "This script requires BioPython to be installed!"
+
+class Printer():
+    """Print things to stdout on one line dynamically"""
+    def __init__(self,data):
+        sys.stdout.write("\r\x1b[K"+data.__str__())
+        sys.stdout.flush()
 
 def chunks(l, n):
 	for i in xrange(0, len(l), n):
@@ -43,15 +50,13 @@ def balancesize(a,b, num):
 				for j in range(num):
 					a = random.randint(0, (len(fNames)-1))
 					outFiles[curr].write(fNames.pop(a))
-					outFiles[curr].write(fSeqs.pop(a))
+					outFiles[curr].write(fSeqs.pops(a))
 
 def split(length, path, export, chunkspath):
-	print("create chunks of " + path)
+	Printer(colored('create chunks of ' + path, 'green'))
 	for filename in glob.iglob(path):
 		(prefix, sep, suffix) = filename.rpartition('.')
 		new_filename = prefix + '.frag.fasta'	
-		#if __name__ == '__main__':
-		# extract chunks
 		handle = open(filename, 'r')
 		records = list(SeqIO.parse(handle, "fasta"))
 		record = records[0]
@@ -60,12 +65,18 @@ def split(length, path, export, chunkspath):
 	    		records.append(SeqRecord(Seq(chunk, record.seq.alphabet), id=str(pos), name=record.name, description=record.description))    	
 	 	SeqIO.write(records, open(new_filename, 'w'), "fasta")
 	 	# create multiple sequence fasta file
-	print("exporting " + export)
+	Printer(colored('exporting: ' + export, 'green'))
+	#sprint("exporting " + export)
     	with open(export, 'w') as outfile:
         	for fname in glob.iglob(chunkspath):
         		with open(fname) as infile:
         			for line in infile:
         				outfile.write(line)
+	Printer(colored('cleanup', 'green'))
+	(prefix, sep, suffix) = path.rpartition('.')
+	filelist = glob.glob(prefix + '.frag.fasta') 
+	for f in filelist:
+		os.remove(f)
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+	sys.exit(main(sys.argv))
     
