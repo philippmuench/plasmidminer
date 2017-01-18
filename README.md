@@ -10,14 +10,22 @@ https://www.overleaf.com/7758191crzmzwwcxftk
 this script downloads the train/test dataset from ncbi and creates various models
 
 ```
-python plasmidminer/plasmidminer.py -h
-usage: plasmidminer.py [-h] [-c CHUNKSIZE] [--email EMAIL] [--version]
+usage: plasmidminer.py [-h] [-t TAXA] [-a PLANUM] [-b CHRNUM] [-c CHUNKSIZE]
+                       [-e EMAIL] [--version]
 
 optional arguments:
-  -h, --help     show this help message and exit
-  -c CHUNKSIZE   Chunk size in nt
-  --email EMAIL  email adress needed for ncbi file download
-  --version      show program's version number and exit
+  -h, --help            show this help message and exit
+  -t TAXA, --taxa TAXA  Taxonomic name for downloaded samples
+  -a PLANUM, --planum PLANUM
+                        Number of plasmids to be downloaded
+  -b CHRNUM, --chrnum CHRNUM
+                        Number of chromosomes to be downloaded
+  -c CHUNKSIZE, --chunksize CHUNKSIZE
+                        Chunk size in nt
+  -e EMAIL, --email EMAIL
+                        Email adress needed for ncbi file download
+  --version             show program's version number and exit
+
 ```
 
 
