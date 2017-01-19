@@ -17,17 +17,23 @@ class Printer():
         sys.stdout.flush()
 
 def loaddata(args):
-	"""Download FASTA files from NCBI"""
-	download.downloadChr(args.taxa, args.chrnum)
-	download.downloadPla(args.taxa, args.planum)
+	"""
+	Download FASTA files from NCBI
+	args.taxa: str, part of the NCBI search command that contain the taxonomic information.
+	args.chrnum: int, max. number of chromosom genomes that will be downloaded
+	args.planum: int, max. number of plasmid genomes that will be downloaded
+	args.gpf: boolean, If True, gpf files will be downloaded for each NCBI genome. False on deault.
+	"""
+	download.downloadChr(args.taxa, args.chrnum, args.gpf)
+	download.downloadPla(args.taxa, args.planum, args.gpf)
 
 def getchunks(args):
 	"""Split FASTA files into same-sized fragments and exort them as multiple FASTA file"""
-	Printer(colored('rewrite fasta headers (plasmid)', 'green'))
+	Printer(colored('(processing) ', 'green') + 'rewrite fasta headers (plasmids)')
 	simulate.split(int(args.chunksize), 'dat/pla/*.fasta', 'dat/plasmid_chunks.fasta', 'dat/pla/*.frag.fasta')
 	simulate.renameheader('positive','dat/plasmid_chunks.fasta')
 	simulate.split(int(args.chunksize), 'dat/chr/*.fasta', 'dat/chromosome_chunks.fasta', 'dat/chr/*.frag.fasta')
-	Printer(colored('rewrite fasta headers (chromosomes)', 'green'))
+	Printer(colored('(processing) ', 'green') + 'rewrite fasta headers (chromosomes)')
 	simulate.renameheader('negative','dat/chromosome_chunks.fasta')
 	
 def createmerged():
@@ -41,9 +47,9 @@ def createmerged():
 
 def getstatfeatures():
 	"""export statistical properties of fasta files as features"""
-	Printer(colored('export features', 'green'))
+	Printer(colored('(processing) ', 'green') + 'generte feature matrix')
 	os.system('python plasmidminer/features.py -I dat/train.fasta -s length -s na -s cpg > dat/train.features')
-	Printer(colored('save csv', 'green'))
+	Printer(colored('(processing) ', 'green') + 'export csv')
 	with open("dat/train.features", "r") as inp, open("dat/train.features.csv", "w") as out:
 		w = csv.writer(out, delimiter=",")
 		w.writerows(x for x in csv.reader(inp, delimiter="\t"))
@@ -52,11 +58,11 @@ def getstatfeatures():
 
 def compress():
 	"""compress train.fasta files"""
-	Printer(colored('compressing files', 'green'))
+	Printer(colored('(processing) ', 'green') + 'compress files')
 	os.system("gzip --keep dat/train.fasta")
 
 def extractkmers():
-	Printer(colored('extract kmer profile', 'green'))
+	Printer(colored('(processing) ', 'green') + 'extract kmer profile')
 	os.system('src/fasta2kmers2 -i dat/train.fasta -f dat/train.features.kmer -j 4 -k 5 -s 0')
 	with open("dat/train.features.kmer", "r") as inp, open("dat/train.features.kmer.csv", "w") as out:
 		w = csv.writer(out, delimiter=",")
@@ -77,16 +83,6 @@ def sequence_cleaner(fasta_file, args):
 		output_file.write(">" + sequences[sequence] + "\n" + sequence + "\n")
 	output_file.close()
 
-#def getkmerprofile():
-#	# get feature matrix
-#	os.system('python plasmidminer/features.py -I dat/train.fasta -s length -s na -s cpg > dat/train.features')
-#	print ('export csv')
-#	with open("dat/train.features", "r") as inp, open("dat/train.features.csv", "w") as out:
-#	w = csv.writer(out, delimiter=",")
-#	w.writerows(x for x in csv.reader(inp, delimiter="\t"))
-#	features.clearit("dat/train.features.csv", "dat/train.features.clear.csv")
-#	os.system("tail -n +2 dat/train.features.clear.csv > dat/train.features.clear2.csv")
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', '--taxa', action='store', dest='taxa', help='Taxonomic name for downloaded samples', default='Escherichia coli')
@@ -94,14 +90,11 @@ if __name__ == "__main__":
     parser.add_argument('-b', '--chrnum', action='store', dest='chrnum', help='Number of chromosomes to be downloaded', default=20)
     parser.add_argument('-c', '--chunksize', action='store', dest='chunksize', help='Chunk size in nt', default=200)
     parser.add_argument('-e', "--email", help='Email adress needed for ncbi file download', dest="email", default="pmu15@helmholtz-hzi.de")
+    parser.add_argument('--multi', dest='gpf', action='store_true', help='Prepare data in multi feature format (taxonomic column in train/test samples)')
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     
     args = parser.parse_args()
-    #print 'chunk size =', args.chunksize
-    #print 'email =', args.email
-    #print 'taxa =', args.taxa
-    #print 'number of chromosomes = ', args.chrnum
-    #print 'number of plasmids = ', args.planum
+
     Entrez.email = args.email # setting Entrez email
     loaddata(args)
     getchunks(args)
@@ -111,4 +104,3 @@ if __name__ == "__main__":
     getstatfeatures()
     compress()	
     extractkmers()
-#    getkmerprofile()

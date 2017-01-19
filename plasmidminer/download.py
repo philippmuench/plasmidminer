@@ -24,7 +24,7 @@ class Printer():
         sys.stdout.write("\r\x1b[K"+data.__str__())
         sys.stdout.flush()
 
-def downloadChr(taxa, num):
+def downloadChr(taxa, num, gpf):
 	if not os.path.exists('dat/chr'):
 		os.makedirs('dat/chr')
 	search_term = '"' + str(taxa) + '"[Organism] AND complete genome[title]'
@@ -38,18 +38,20 @@ def downloadChr(taxa, num):
 	for genome_id in genome_ids:
 		Printer(colored('(download chromosomes) ', 'green')+ colored('['+str(i) +'/' + str(len(genome_ids)) + '] ', 'blue')+ 'fetching database (ID:' + str(genome_id) + ')') 
 		record = Entrez.efetch(db="nucleotide", id=genome_id, rettype="fasta", retmode="text")
-		#record_gpf = Entrez.efetch(db="protein", id=genome_id, format="gpf") ## comment out if you want to download gfp files
-		#filename_gpf = 'dat/chr/geneBankRecord_{}.gpf'.format(genome_id) ## comment out if you want to download gfp files
+		if(gpf):
+			record_gpf = Entrez.efetch(db="protein", id=genome_id, format="gpf")
+			filename_gpf = 'dat/chr/geneBankRecord_{}.gpf'.format(genome_id)
 		filename = 'dat/chr/genBankRecord_{}.fasta'.format(genome_id)
 		if not os.path.exists(filename):
 			Printer(colored('(download chromosomes) ', 'green') + colored('['+str(i) +'/' + str(len(genome_ids))+ '] ', 'blue') + 'add genome (ID: ' + str(genome_id) + ') to collection')
 			with open(filename, 'w') as f:
 				f.write(record.read())
-			#with open(filename_gpf, 'w') as f: ## comment out if you want to download gfp files
-				#f.write(record_gpf.read()) ## comment out if you want to download gfp files
+			if(gpf):
+				with open(filename_gpf, 'w') as f:
+					f.write(record_gpf.read())
 			time.sleep(1) # to make sure not many requests go per second to ncbi
 		else:
-			Printer(colored('(download plasmids) ', 'green') + colored('[' + str(i) + '/' + str(len(genome_ids))+ '] ', 'blue') + ' (ID: ' + str(genome_id) + ') is in collection. Skipping.')
+			Printer(colored('(download plasmids) ', 'green') + colored('[' + str(i) + '/' + str(len(genome_ids))+ '] ', 'blue') + 'chromosome (ID: ' + str(genome_id) + ') is in collection. Skipping.')
 		i = i + 1
 
     #    bar.next()
@@ -63,7 +65,7 @@ def downloadChr(taxa, num):
 				for line in infile:
 					outfile.write(line)
 
-def downloadPla(taxa, num):
+def downloadPla(taxa, num, gpf):
 	# imports all E.Coli plasmids as positive samples
 	# create download folders
 	if not os.path.exists('dat/pla'):
@@ -80,18 +82,21 @@ def downloadPla(taxa, num):
 	for genome_id in genome_ids:
 		Printer(colored('(download plasmids) ', 'green')+ colored('['+str(i) +'/' + str(len(genome_ids)) + '] ', 'blue')+ 'fetching database (ID:' + str(genome_id) + ')') 
 		record = Entrez.efetch(db="nucleotide", id=genome_id, rettype="fasta", retmode="text")
-		record_gpf = Entrez.efetch(db="protein", id=genome_id, format="gpf")
 		# write gb record
 		filename = 'dat/pla/genBankRecord_{}.fasta'.format(genome_id)
-		#filename_gpf = 'dat/pla/geneBankRecord_{}.gpf'.format(genome_id) ## comment out if you want to download gfp files
+		if(gpf):
+			record_gpf = Entrez.efetch(db="protein", id=genome_id, format="gpf")
+			filename_gpf = 'dat/pla/geneBankRecord_{}.gpf'.format(genome_id) ## comment out if you want to download gfp files
 		if not os.path.exists(filename):
 			Printer(colored('(download plasmids) ', 'green') + colored('[' + str(i) + '/' + str(len(genome_ids))+ '] ', 'blue') + 'add genome (ID: ' + str(genome_id) + ') to collection')
 			with open(filename, 'w') as f:
 				f.write(record.read())
-        #with open(filename_gpf, 'w') as f: ## comment out if you want to download gfp files
-        	#f.write(record_gpf.read()) ## comment out if you want to download gfp files
+        	if(gpf):
+        		with open(filename_gpf, 'w') as f:
+        			f.write(record_gpf.read())
+        			# grep 'genus \"' geneBankRecord_359330873.gpf | awk -F\" '{print $2}' 
 		else:
-			Printer(colored('(download plasmids) ', 'green') + colored('[' + str(i) + '/' + str(len(genome_ids))+ '] ', 'blue') + ' (ID: ' + str(genome_id) + ') is in collection. Skipping.')
+			Printer(colored('(download plasmids) ', 'green') + colored('[' + str(i) + '/' + str(len(genome_ids))+ '] ', 'blue') + 'plasmid ( ID: ' + str(genome_id) + ') is in collection. Skipping.')
 		i = i + 1
 		time.sleep(1) # to make sure not many requests go per second to ncbi
 	#	bar.next()
