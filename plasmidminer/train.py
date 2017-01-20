@@ -16,8 +16,7 @@ try:
 	from sklearn.ensemble import VotingClassifier, RandomForestClassifier
 	from sklearn import svm
 	from sklearn.svm import SVC
-	from sklearn.model_selection import cross_val_score
-	from sklearn.cross_validation import train_test_split
+	from sklearn.model_selection import cross_val_score train_test_split
 	from sklearn.preprocessing import StandardScaler
 	from sklearn.base import BaseEstimator
 	from sklearn.base import ClassifierMixin
@@ -30,12 +29,10 @@ try:
 except ImportError:
 	print "This script requires sklearn to be installed!"
 
-
-
 # pd.set_option('display.mpl_style', 'default') # jupyter
 
 def creatematrix(features, kmer):
-	stat = pd.read_csv(features, sep=",")
+  stat = pd.read_csv(features, sep=",")
 	kmer = pd.read_csv(kmer, sep="\t", header = None) 
 	df = pd.concat([stat.reset_index(drop=True), kmer], axis=1) # concat kmerand stat matrix
 	id2 = df.id.str.split("-",expand=True) # split the string to get label
@@ -186,7 +183,7 @@ print("train/test set generated")
 # specify classifiers
 clf1 = LogisticRegression(penalty='l2', C=0.001, random_state=0)
 clf2 = RandomForestClassifier(n_estimators=500)
-clf3 = SVC(kernel='rbf',random_state=0, gamma=1.0, C=1.0)
+clf3 = SVC(kernel='rbf',random_state=0, gamma=0.0001, C=1.0)
 #eclf = SVC(kernel='rbf',random_state=0, gamma=100.0, C=1.0)
 #clf3 = svm.SVC(kernel='linear')
 
@@ -221,9 +218,7 @@ with open('rf.pkl', 'wb') as fid:
 with open('SVM_rbf.pkl', 'wb') as fid:
     cPickle.dump(clf3, fid) 
 
-
 print("generate ROC curve")
-
 
 # plot ROC curve
 colors = ['black', 'orange', 'blue', 'green']
@@ -260,7 +255,3 @@ plt.savefig('roc.png', dpi=300)
 plt.show()
 
 print("finished")
-
-
-
-

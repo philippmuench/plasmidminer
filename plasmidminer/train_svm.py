@@ -1,22 +1,33 @@
 #!/usr/bin/python
-
+import sys
 import pandas as pd
 import numpy as np
 import operator
 import cPickle
-from sklearn.cross_validation import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.base import BaseEstimator
-from sklearn.base import ClassifierMixin
-from sklearn.preprocessing import LabelEncoder
-from sklearn.externals import six
-from sklearn.base import clone
-from sklearn.pipeline import _name_estimators
-from sklearn.pipeline import Pipeline
-from sklearn import svm
-from sklearn.svm import SVC
-from sklearn.model_selection import cross_val_score
+try:
+    #from sklearn.cross_validation import train_test_split
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.base import BaseEstimator
+    from sklearn.base import ClassifierMixin
+    from sklearn.preprocessing import LabelEncoder
+    from sklearn.externals import six
+    from sklearn.base import clone
+    from sklearn.pipeline import _name_estimators
+    from sklearn.pipeline import Pipeline
+    from sklearn import svm
+    from sklearn.svm import SVC
+    from sklearn.model_selection import cross_val_score, train_test_split
+    from termcolor import colored
+except ImportError:
+    print "This script requires BioPython to be installed!"
+
 #from skrvm import RVC
+
+class Printer():
+    """Print things to stdout on one line dynamically"""
+    def __init__(self,data):
+        sys.stdout.write("\r\x1b[K"+data.__str__())
+        sys.stdout.flush()
 
 class MajorityVoteClassifier(BaseEstimator,
                              ClassifierMixin):
@@ -146,7 +157,7 @@ def creatematrix(features, kmer):
     all_complete = all_complete.dropna(axis=1) # remove columns with NAN
     return all_complete
 
-print("load data")
+Printer(colored('(preprocessing) ', 'green') + 'import data')
 dat = creatematrix('dat/train.features.clear2.csv', 'dat/train.features.kmer')
 
 # check if the dataset is inbalanced
@@ -154,13 +165,12 @@ dat.pos = dat.loc[dat['label'] == 1]
 dat.neg = dat.loc[dat['label'] == 0]
 
 #dat.pos.shape
-print('number of negative instances: %d ' % (dat.neg.shape[0]))
-print('number of positive instances: %d ' % (dat.pos.shape[0]))
+#print('number of negative instances: %d ' % (dat.neg.shape[0]))
+#print('number of positive instances: %d ' % (dat.pos.shape[0]))
 num = min(dat.neg.shape[0],dat.pos.shape[0])
-print('limit dataset size to %d' % (num))
+#print('limit dataset size to %d' % (num))
 
 # generate a random subset of both with the size of $num
-
 posrand = dat.pos.sample(n=num)
 negrand = dat.neg.sample(n=num)
 
@@ -170,15 +180,13 @@ dat = df.append(negrand)
 # split to test and training set
 y = dat['label'].tolist() # extract label
 X = dat.drop(dat.columns[[0]], 1) # remove label
-print("data procesed")
 
+Printer(colored('(preprocessing) ', 'green') + 'generate train/test dataset')
 
 # generate cross validation datasets, split x,y arrays into 30percent test data and 70 percent training data
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=0)
-print("train/test set generated")
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.8, random_state=0)
 
-
-print('training...')
+Printer(colored('(training) ', 'green') + 'svm')
 
 clf = SVC(kernel='rbf',random_state=0, gamma=1e-3, C=1.0, probability=True)
 #clf2 = RVC()
@@ -188,15 +196,14 @@ pipe = Pipeline([['sc', StandardScaler()],
 #                  ['clf', clf2]])
 
 clf_labels = ['SVM']
-
 all_clf = [pipe]
 
 for clf, label in zip(all_clf, clf_labels):
     scores = cross_val_score(estimator=clf,
                              X=X_train,
                              y=y_train,
-                             cv=10,
-                             scoring='roc_auc')
+                             cv=5,
+                             scoring='roc_auc', verbose=10)
     print("ROC AUC: %0.2f (+/- %0.2f) [%s]"
           % (scores.mean(), scores.std(), label))
 
@@ -218,7 +225,3 @@ with open('model_svm.pkl', 'wb') as fid:
 #    pipe = cPickle.load(fid)
 #with open('model_rvm.pkl', 'rb') as fid:
 #    pipe2 = cPickle.load(fid)
-
-
-
-
