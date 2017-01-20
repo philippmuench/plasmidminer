@@ -74,10 +74,10 @@ def sequence_cleaner(fasta_file, args):
 	for seq_record in SeqIO.parse(fasta_file, "fasta"):
 		sequence = str(seq_record.seq).upper()
 		if (len(sequence) >= args.chunksize):
-			if sequence not in sequences:
-				sequences[sequence] = seq_record.id
-			else:
-				sequences[sequence] += "_" + seq_record.id
+			#if sequence not in sequences:
+			sequences[sequence] = seq_record.id
+			#else:
+			#	sequences[sequence] += "_" + seq_record.id
 	output_file = open(fasta_file + ".clear", "w+")
 	for sequence in sequences:
 		output_file.write(">" + sequences[sequence] + "\n" + sequence + "\n")
