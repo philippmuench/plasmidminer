@@ -63,7 +63,7 @@ def compress():
 
 def extractkmers():
 	Printer(colored('(processing) ', 'green') + 'extract kmer profile')
-	os.system('src/fasta2kmers2 -i dat/train.fasta -f dat/train.features.kmer -j 4 -k 8 -s 0')
+	os.system('src/fasta2kmers2 -i dat/train.fasta -f dat/train.features.kmer -j 4 -k 6 -s 0')
 	with open("dat/train.features.kmer", "r") as inp, open("dat/train.features.kmer.csv", "w") as out:
 		w = csv.writer(out, delimiter=",")
 		w.writerows(x for x in csv.reader(inp, delimiter="\t"))

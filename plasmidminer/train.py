@@ -60,7 +60,7 @@ def drawroc(clf, clf_labels, X_train, y_train, X_test, y_test):
 	linestyles = [':', '--', '-.', '-']
 	for clf, label, clr, ls \
 									in zip(clf, clf_labels, colors, linestyles):
-					scores = cross_val_score(estimator=clf,X=X_train,y=y_train,cv=args.cv, scoring='roc_auc', n_jobs=-1, verbose=3)
+					scores = cross_val_score(estimator=clf,X=X_train,y=y_train,cv=int(args.cv), scoring='roc_auc', n_jobs=-1, verbose=3)
 					print("ROC AUC: %0.2f (+/- %0.2f) [%s]" % (scores.mean(), scores.std(), label))
 					y_pred = clf.fit(X_train, y_train).predict_proba(X_test)[:, 1]
 					fpr, tpr, thresholds = roc_curve(y_true= y_test, y_score=y_pred)
@@ -227,9 +227,9 @@ if __name__ == "__main__":
 
 	### build model
 	Printer(colored('(training) ', 'green') + 'build models')
-	clf1 = LogisticRegression(penalty='l2', C=0.001, random_state=0, verbose=3, n_jobs=-1)
-	clf2 = RandomForestClassifier(n_estimators=500, verbose=3, n_jobs=-1)
-	clf3 = SVC(kernel='rbf',random_state=0)
+	clf1 = LogisticRegression(penalty='l2', C=0.001, random_state=0, n_jobs=-1)
+	clf2 = RandomForestClassifier(n_estimators=500, verbose=2, n_jobs=-1)
+	clf3 = SVC(kernel='rbf',random_state=0, probability=True)
 	#eclf = SVC(kernel='rbf',random_state=0, gamma=100.0, C=1.0)
 	#clf3 = svm.SVC(kernel='linear')
 
@@ -249,7 +249,10 @@ if __name__ == "__main__":
 
 	### train model
 	Printer(colored('(training) ', 'green') + 'fit models')
-	pipe = mv_clf.fit(X_train, y_train) 
+	pipe = mv_clf.fit(X_train, y_train)
+	print('scoring model using cv')
+	#pipe.score(X_test, y_test)
+	cross_val_score(estimator=pipe,X=X_train,y=y_train,cv=5, scoring='roc_auc', n_jobs=-1, verbose=2)
 
 	### save model
 	Printer(colored('(training) ', 'green') + 'save model')
@@ -257,6 +260,6 @@ if __name__ == "__main__":
 		cPickle.dump(pipe, fid) 
 
 	### draw ROC
-	if(drawroc):
+	if(roc):
 		Printer(colored('(training) ', 'green') + 'draw ROC curve')
-		roc(all_clf, clf_labels, X_train, y_train, X_test, y_test)
+		drawroc(all_clf, clf_labels, X_train, y_train, X_test, y_test)
