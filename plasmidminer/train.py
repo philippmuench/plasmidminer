@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-# function to prepare the dataset for training process
-
 import operator
 import sys
 import numpy as np
@@ -40,19 +38,19 @@ class Printer():
         sys.stdout.flush()
 
 def creatematrix(features, kmer):
-	stat = pd.read_csv(features, sep=",")
-	kmer = pd.read_csv(kmer, sep="\t", header = None) 
-	df = pd.concat([stat.reset_index(drop=True), kmer], axis=1) # concat kmerand stat matrix
-	id2 = df.id.str.split("-",expand=True) # split the string to get label
-	df2 = pd.concat([id2, df], axis=1)
-	all = df2.drop(df2.columns[[1,2]], 1)
-	all_complete = all[(all.length == 200)] # keep only complete fragments
-	all_complete.columns.values[0] = "label"
-	# encoding class labels as integers
-	all_complete.loc[all_complete.label == 'positive', 'label'] = 1
-	all_complete.loc[all_complete.label == 'negative', 'label'] = 0
-	all_complete = all_complete.dropna(axis=1) # remove columns with NAN
-	return all_complete
+    stat = pd.read_csv(features, sep=",")
+    kmer = pd.read_csv(kmer, sep="\t", header = None)
+    kmer = kmer.iloc[:, :-1]
+    id2 = stat.id.str.split("-",expand=True) # split the string to get label
+    id2 = id2.iloc[:, :-1]
+    stat2 = stat.iloc[:, 1:]
+    df = pd.concat([stat2.reset_index(drop=True), kmer], axis=1) # concat kmerand stat matrix
+    df = pd.concat([id2, df], axis=1)
+    df.columns.values[0] = "label"
+    # encoding class labels as integers
+    df.loc[df.label == 'positive', 'label'] = 1
+    df.loc[df.label == 'negative', 'label'] = 0
+    return df
 
 def drawroc(clf, clf_labels, X_train, y_train, X_test, y_test):
 	""" draw a roc curve for each model in clf, save as roc.png"""
