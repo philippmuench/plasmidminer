@@ -60,6 +60,8 @@ def drawroc(clf, clf_labels, X_train, y_train, X_test, y_test):
 	linestyles = [':', '--', '-.', '-']
 	for clf, label, clr, ls \
 									in zip(clf, clf_labels, colors, linestyles):
+					scores = cross_val_score(estimator=clf,X=X_train,y=y_train,cv=args.cv, scoring='roc_auc', n_jobs=-1, verbose=3)
+					print("ROC AUC: %0.2f (+/- %0.2f) [%s]" % (scores.mean(), scores.std(), label))
 					y_pred = clf.fit(X_train, y_train).predict_proba(X_test)[:, 1]
 					fpr, tpr, thresholds = roc_curve(y_true= y_test, y_score=y_pred)
 					roc_auc = auc(x=fpr, y=tpr)
@@ -204,14 +206,14 @@ def preprocess(dat, args):
 	y = dat['label'].tolist() # extract label
 	X = dat.drop(dat.columns[[0]], 1) # remove label
 	# generate cross validation datasets, split x,y arrays into 30percent test data and 70 percent training data
-	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=args.test_size, random_state=0)
+	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=int(args.test_size)/100, random_state=0)
 	return [X_train, X_test, y_train, y_test]
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
- 	parser.add_argument('-t', '--test_size', action='store', dest='test_size', help='size of test set from whole dataset in percent', default=0.3)
+ 	parser.add_argument('-t', '--test_size', action='store', dest='test_size', help='size of test set from whole dataset in percent', default=10)
  	parser.add_argument('-c', '--cv', action='store', dest='cv', help='cross validation size (e.g. 10 for 10-fold cross validation)', default=3)
- 	parser.add_argument('--drawroc', dest='roc', action='store_true', help='export ROC curve')
+ 	parser.add_argument('--roc', dest='roc', action='store_true', help='export ROC curve')
  	parser.add_argument('--balance', dest='balance', action='store_true', help='balance dataset')
  	parser.add_argument('--version', action='version', version='%(prog)s 1.0')
  	args = parser.parse_args()
@@ -219,15 +221,15 @@ if __name__ == "__main__":
 	### load/preprocess data
 	Printer(colored('(preprocessing) ', 'green') + 'import data')
 	dat = creatematrix('dat/train.features.clear2.csv', 'dat/train.features.kmer')
-	
+
 	Printer(colored('(preprocessing) ', 'green') + 'generate train/test dataset')
 	X_train, X_test, y_train, y_test = preprocess(dat, args)
 
 	### build model
 	Printer(colored('(training) ', 'green') + 'build models')
-	clf1 = LogisticRegression(penalty='l2', C=0.001, random_state=0)
-	clf2 = RandomForestClassifier(n_estimators=500)
-	clf3 = SVC(kernel='rbf',random_state=0, gamma=0.0001, C=1.0)
+	clf1 = LogisticRegression(penalty='l2', C=0.001, random_state=0, verbose=3, n_jobs=-1)
+	clf2 = RandomForestClassifier(n_estimators=500, verbose=3, n_jobs=-1)
+	clf3 = SVC(kernel='rbf',random_state=0)
 	#eclf = SVC(kernel='rbf',random_state=0, gamma=100.0, C=1.0)
 	#clf3 = svm.SVC(kernel='linear')
 
@@ -240,12 +242,13 @@ if __name__ == "__main__":
 	clf_labels += ['Majority Voting']
 	all_clf = [pipe1, clf2, pipe3, mv_clf]
 
-# comment this out to iterate over every model and print ROC values for it
-#	for clf, label in zip(all_clf, clf_labels):
-#		scores = cross_val_score(estimator=clf,X=X_train,y=y_train,cv=args.cv, scoring='roc_auc')
-#		print("ROC AUC: %0.2f (+/- %0.2f) [%s]" % (scores.mean(), scores.std(), label))
+	# comment this out to iterate over every model and print ROC values for it
+	#	for clf, label in zip(all_clf, clf_labels):
+	#		scores = cross_val_score(estimator=clf,X=X_train,y=y_train,cv=args.cv, scoring='roc_auc')
+	#		print("ROC AUC: %0.2f (+/- %0.2f) [%s]" % (scores.mean(), scores.std(), label))
 
 	### train model
+	Printer(colored('(training) ', 'green') + 'fit models')
 	pipe = mv_clf.fit(X_train, y_train) 
 
 	### save model
@@ -254,6 +257,6 @@ if __name__ == "__main__":
 		cPickle.dump(pipe, fid) 
 
 	### draw ROC
-	if(roc):
+	if(drawroc):
 		Printer(colored('(training) ', 'green') + 'draw ROC curve')
-		drawroc()
+		roc(all_clf, clf_labels, X_train, y_train, X_test, y_test)
