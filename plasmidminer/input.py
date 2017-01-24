@@ -153,7 +153,7 @@ def getstatfeatures():
 
 def extractkmers():
 	Printer(colored('(processing) ', 'green') + 'extract kmer profile')
-	os.system('src/fasta2kmers2 -i dat/input.fasta -f dat/input.features.kmer -j 4 -k 5 -s 0 -n 1')
+	os.system('src/fasta2kmers2 -i dat/input.fasta -f dat/input.features.kmer -j 4 -k 6 -s 0 -n 1')
 	with open("dat/input.features.kmer", "r") as inp, open("dat/input.features.kmer.csv", "w") as out:
 		w = csv.writer(out, delimiter=",")
 		w.writerows(x for x in csv.reader(inp, delimiter="\t"))
@@ -165,8 +165,31 @@ def createpredictmatrix(features, kmer):
 	df_complete = df.dropna(axis=1) # remove columns with NAN
 	return df_complete
 
+def sepseq(fasta_file, predictions):
+	"""seperates plasmid and chromosomal fragments based on prediction"""
+	plasmid_sequences={}
+	chromsom_sequences={}
+	i = 0
+	for seq_record in SeqIO.parse(fasta_file, "fasta"):
+		sequence = str(seq_record.seq).upper()
+		if (predictions[i] == 1):
+			plasmid_sequences[sequence] = seq_record.id
+		else:
+			chromsom_sequences[sequence] = seq_record.id
+	
+	output_file = open(fasta_file + ".plasmids", "w+")
+	for sequence in plasmid_sequences:
+		output_file.write(">" + plasmid_sequences[sequence] + "\n" + sequence + "\n")
+	output_file.close()
+
+	output_file = open(fasta_file + ".chromosomes", "w+")
+	for sequence in chromsom_sequences:
+		output_file.write(">" + chromsom_sequences[sequence] + "\n" + sequence + "\n")
+	output_file.close()
+
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
+	parser.add_argument('--split', dest='split', action='store_true', help='split data based on prediction')
 	parser.add_argument('--version', action='version', version='%(prog)s 1.0')
 	args = parser.parse_args()
 
@@ -179,7 +202,13 @@ if __name__ == "__main__":
 		pipe = cPickle.load(fid)
 	print('classifier loaded')
 	label = {0:'chromosomal', 1:'plasmid'}
+	predictions = pipe.predict(X)
+	if (args.split):
+		Printer(colored('(predict) ', 'green') + 'generate FASTA files')
+		sepseq('dat/input.fasta', predictions)
+		Printer(colored('(predict) ', 'green') + 'finished')
 
-	for index, row in X.iterrows():
-		print('Prediction: %s\nProbability: %.2f%%' %\
-			(label[pipe.predict(X)[index]], pipe.predict_proba(X)[index].max()*100))
+#	for index, row in X.iterrows():
+#		print('Prediction: %s\nProbability: %.2f%%' %\
+#			(label[pipe.predict(X)[index]], pipe.predict_proba(X)[index].max()*100))
+
