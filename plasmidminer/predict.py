@@ -1,9 +1,164 @@
 #!/usr/bin/python
-
-import argparse, os, csv, sys, re
+import os, csv, sys
 import download, simulate, features
-import pandas as pd
+import argparse
+from termcolor import colored
 import cPickle
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.base import BaseEstimator
+from sklearn.base import ClassifierMixin
+from sklearn.preprocessing import LabelEncoder
+from sklearn.externals import six
+from sklearn.base import clone
+from sklearn.pipeline import _name_estimators
+try:
+	from Bio import Entrez
+	from Bio import SeqIO
+except ImportError:
+	print "This script requires BioPython to be installed!"
+
+class MajorityVoteClassifier(BaseEstimator,
+                             ClassifierMixin):
+    """ A majority vote ensemble classifier
+    Parameters
+    ----------
+    classifiers : array-like, shape = [n_classifiers]
+      Different classifiers for the ensemble
+    vote : str, {'classlabel', 'probability'} (default='label')
+      If 'classlabel' the prediction is based on the argmax of
+        class labels. Else if 'probability', the argmax of
+        the sum of probabilities is used to predict the class label
+        (recommended for calibrated classifiers).
+    weights : array-like, shape = [n_classifiers], optional (default=None)
+      If a list of `int` or `float` values are provided, the classifiers
+      are weighted by importance; Uses uniform weights if `weights=None`.
+    """
+    def __init__(self, classifiers, vote='classlabel', weights=None):
+
+        self.classifiers = classifiers
+        self.named_classifiers = {key: value for key, value
+                                  in _name_estimators(classifiers)}
+        self.vote = vote
+        self.weights = weights
+
+    def fit(self, X, y):
+        """ Fit classifiers.
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape = [n_samples, n_features]
+            Matrix of training samples.
+        y : array-like, shape = [n_samples]
+            Vector of target class labels.
+        Returns
+        -------
+        self : object
+        """
+        if self.vote not in ('probability', 'classlabel'):
+            raise ValueError("vote must be 'probability' or 'classlabel'"
+                             "; got (vote=%r)"
+                             % self.vote)
+
+        if self.weights and len(self.weights) != len(self.classifiers):
+            raise ValueError('Number of classifiers and weights must be equal'
+                             '; got %d weights, %d classifiers'
+                             % (len(self.weights), len(self.classifiers)))
+
+        # Use LabelEncoder to ensure class labels start with 0, which
+        # is important for np.argmax call in self.predict
+        self.lablenc_ = LabelEncoder()
+        self.lablenc_.fit(y)
+        self.classes_ = self.lablenc_.classes_
+        self.classifiers_ = []
+        for clf in self.classifiers:
+            fitted_clf = clone(clf).fit(X, self.lablenc_.transform(y))
+            self.classifiers_.append(fitted_clf)
+        return self
+
+    def predict(self, X):
+        """ Predict class labels for X.
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape = [n_samples, n_features]
+            Matrix of training samples.
+        Returns
+        ----------
+        maj_vote : array-like, shape = [n_samples]
+            Predicted class labels.
+        """
+        if self.vote == 'probability':
+            maj_vote = np.argmax(self.predict_proba(X), axis=1)
+        else:  # 'classlabel' vote
+
+            #  Collect results from clf.predict calls
+            predictions = np.asarray([clf.predict(X)
+                                      for clf in self.classifiers_]).T
+
+            maj_vote = np.apply_along_axis(
+                lambda x:
+                np.argmax(np.bincount(x,
+                                      weights=self.weights)),
+                axis=1,
+                arr=predictions)
+        maj_vote = self.lablenc_.inverse_transform(maj_vote)
+        return maj_vote
+
+    def predict_proba(self, X):
+        """ Predict class probabilities for X.
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape = [n_samples, n_features]
+            Training vectors, where n_samples is the number of samples and
+            n_features is the number of features.
+        Returns
+        ----------
+        avg_proba : array-like, shape = [n_samples, n_classes]
+            Weighted average probability for each class per sample.
+        """
+        probas = np.asarray([clf.predict_proba(X)
+                             for clf in self.classifiers_])
+        avg_proba = np.average(probas, axis=0, weights=self.weights)
+        return avg_proba
+
+    def get_params(self, deep=True):
+        """ Get classifier parameter names for GridSearch"""
+        if not deep:
+            return super(MajorityVoteClassifier, self).get_params(deep=False)
+        else:
+            out = self.named_classifiers.copy()
+            for name, step in six.iteritems(self.named_classifiers):
+                for key, value in six.iteritems(step.get_params(deep=True)):
+                    out['%s__%s' % (name, key)] = value
+        return out
+    
+class Printer():
+	"""Print things to stdout on one line dynamically"""
+	def __init__(self,data):
+		sys.stdout.write("\r\x1b[K"+data.__str__())
+		sys.stdout.flush()
+
+def getstatfeatures(args):
+	"""export statistical properties of fasta files as features"""
+	Printer(colored('(processing) ', 'green') + 'generte feature matrix')
+	s = " "
+	cmd = ("python plasmidminer/features.py -I ", str(args.input), "-s length -s na -s cpg > dat/input.features")
+	os.system(s.join( cmd ))
+
+	Printer(colored('(processing) ', 'green') + 'export csv')
+	with open("dat/input.features", "r") as inp, open("dat/input.features.csv", "w") as out:
+		w = csv.writer(out, delimiter=",")
+		w.writerows(x for x in csv.reader(inp, delimiter="\t"))
+	features.clearit("dat/input.features.csv", "dat/input.features.clear.csv")
+	os.system("tail -n +2 dat/input.features.clear.csv > dat/input.features.clear2.csv")
+
+def extractkmers():
+	Printer(colored('(processing) ', 'green') + 'extract kmer profile')
+	os.system('src/fasta2kmers2 -i dat/input.fasta -f dat/input.features.kmer -j 4 -k 6 -s 0 -n 1')
+	with open("dat/input.features.kmer", "r") as inp, open("dat/input.features.kmer.csv", "w") as out:
+		w = csv.writer(out, delimiter=",")
+		w.writerows(x for x in csv.reader(inp, delimiter="\t"))
 
 def createpredictmatrix(features, kmer):
 	stat = pd.read_csv(features, sep=",")
@@ -12,53 +167,61 @@ def createpredictmatrix(features, kmer):
 	df_complete = df.dropna(axis=1) # remove columns with NAN
 	return df_complete
 
-def predict(args):
-	print ('predicting %s ') % args.fasta_file
+def sepseq(fasta_file, predictions, probabilities, args):
+	"""seperates plasmid and chromosomal fragments based on prediction"""
+	plasmid_sequences={}
+	chromsom_sequences={}
+	i = 0
+	for seq_record in SeqIO.parse(fasta_file, "fasta"):
+		sequence = str(seq_record.seq).upper()
+		if (predictions[i] == 1):
+			if (args.probability):
+				plasmid_sequences[sequence] = seq_record.description +  str(probabilities[i])
+			else:
+				plasmid_sequences[sequence] = seq_record.description 
+		else:
+			if (args.probability):
+				chromsom_sequences[sequence] = seq_record.description +  str(probabilities[i])
+			else:
+				chromsom_sequences[sequence] = seq_record.description
+		i += 1
 
-	# generate compostition statistic features	
-	s = " "
-	cmd = ("python plasmidminer/features.py -I", args.fasta_file, "-s length -s na -s cpg > dat/test.features")
-	os.system(s.join( cmd ))
-	
-	with open("dat/test.features", "r") as inp, open("dat/test.features.csv", "w") as out:
-		w = csv.writer(out, delimiter=",")
-		w.writerows(x for x in csv.reader(inp, delimiter="\t"))
-	features.clearit("dat/test.features.csv", "dat/test.features.clear.csv")
-	os.system("tail -n +2 dat/test.features.clear.csv > dat/test.features.clear2.csv")
+	output_file = open(fasta_file + ".plasmids", "w+")
+	for sequence in plasmid_sequences:
+		output_file.write(">" + plasmid_sequences[sequence] + "\n" + sequence + "\n")
+	output_file.close()
 
-	# generate kmer features
-	s = " "
-	cmd = ("src/fasta2kmers2 -i", args.fasta_file, "-f dat/test.features.kmer -j 4 -k 5 -s 0")
-	os.system(s.join( cmd ))
-	with open("dat/test.features.kmer", "r") as inp, open("dat/test.features.kmer.csv", "w") as out:
-		w = csv.writer(out, delimiter=",")
-		w.writerows(x for x in csv.reader(inp, delimiter="\t"))
-	
-	# predict data use pickle model
-	dat = createpredictmatrix('dat/test.features.clear2.csv', 'dat/test.features.kmer')
-	X = dat.drop(dat.columns[[0]], 1) # remove label
-
-	print(X)
-	# load classifier
-	with open('dat/rf.pkl', 'rb') as fid:
-		rf_mod = cPickle.load(fid)
-	print('classifier loaded')
-	label = {0:'chromosomal', 1:'plasmid'}
-	print('Prediction: %s\nProbability: %.2f%%' %\
-		(label[rf_mod.predict(X)[0]], rf_mod.predict_proba(X)[0].max()*100))
+	output_file = open(fasta_file + ".chromosomes", "w+")
+	for sequence in chromsom_sequences:
+		output_file.write(">" + chromsom_sequences[sequence] + "\n" + sequence + "\n")
+	output_file.close()
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--fasta_file', type=str, help='path to input fasta file')
-	parser.add_argument('--save_dir', type=str, default='save', help='directory to store output files')
-	
-	parser.add_argument("--model", type=str, default="dat/rf.pkl", help='path to model .pkl file')
+	parser.add_argument('-i', '--input', action='store', dest='input', help='Path to input FASTA file', default='dat/input.fasta')
+	parser.add_argument('-m', '--model', action='store', dest='model', help='Path to model (.pkl)', default='model.pkl')
+	parser.add_argument('-s', '--split', dest='split', action='store_true', help='split data based on prediction')
+	parser.add_argument('-p', '--probability', dest='probability', action='store_true', help='add probability information to fasta header')
 	parser.add_argument('--version', action='version', version='%(prog)s 1.0')
-
 	args = parser.parse_args()
 
-	print 'input folder     =', args.fasta_file
-	print 'output folder     =', args.save_dir
-	print 'model file     =', args.model
+	getstatfeatures(args)	
+	extractkmers()
+	print('create matrix')
+	dat = createpredictmatrix('dat/input.features.clear2.csv', 'dat/input.features.kmer')
+	X = dat.drop(dat.columns[[0]], 1) # remove label
+	with open(args.model, 'rb') as fid:
+		pipe = cPickle.load(fid)
+	print('classifier loaded')
+	label = {0:'chromosomal', 1:'plasmid'}
+	predictions = pipe.predict(X)
+	probabilities = np.amax(pipe.predict_proba(X), axis=1) 
+	if (args.split):
+		Printer(colored('(predict) ', 'green') + 'generate FASTA files')
+		sepseq('dat/input.fasta', predictions, probabilities, args)
+		Printer(colored('(predict) ', 'green') + 'finished')
 
-	predict(args)
+#	for index, row in X.iterrows():
+#		print('Prediction: %s\nProbability: %.2f%%' %\
+#			(label[pipe.predict(X)[index]], pipe.predict_proba(X)[index].max()*100))
+

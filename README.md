@@ -5,6 +5,17 @@ detection of plasmid fragments in metagenomic samples
 # draft manuscript
 https://www.overleaf.com/7758191crzmzwwcxftk
 
+
+## usuage
+
+to find plasmid sequences in the input file:
+
+```
+python plasmidminer/predict.py --input input.fasta --model model.pkl --split --probability
+```
+
+if the `--split` command is added, this will create two fasta files `input.fasta.plasmids` and `input.fasta.chromosomes`
+
 ## generation of datasets
 
 this script downloads the train/test dataset from ncbi and creates various models
