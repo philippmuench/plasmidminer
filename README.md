@@ -6,9 +6,24 @@ detection of plasmid fragments in metagenomic samples
 https://www.overleaf.com/7758191crzmzwwcxftk
 
 
-## usuage
+## prediction of sequences from FASTA file
 
-to find plasmid sequences in the input file:
+
+```
+usage: predict.py [-h] [-i INPUT] [-m MODEL] [-s] [-p] [--version]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i INPUT, --input INPUT
+                        Path to input FASTA file
+  -m MODEL, --model MODEL
+                        Path to model (.pkl)
+  -s, --split           split data based on prediction
+  -p, --probability     add probability information to fasta header
+  --version             show program's version number and exit
+```
+
+i.e. to split input.fasta bases on plasmid prediction use:
 
 ```
 python plasmidminer/predict.py --input input.fasta --model model.pkl --split --probability
