@@ -6,8 +6,7 @@ detection of plasmid fragments in metagenomic samples
 https://www.overleaf.com/7758191crzmzwwcxftk
 
 
-## prediction of sequences from FASTA file
-
+## prediction of multiple sequences from FASTA file
 
 ```
 usage: predict.py [-h] [-i INPUT] [-m MODEL] [-s] [-p] [--version]
@@ -30,6 +29,12 @@ python plasmidminer/predict.py --input input.fasta --model model.pkl --split --p
 ```
 
 if the `--split` command is added, this will create two fasta files `input.fasta.plasmids` and `input.fasta.chromosomes`
+
+## prediction of plasmid probablility within a genome
+
+you can use the sliding window approach `python plasmidminer/predict.py --sliding --window 200 -i input.fasta` to generate the plasmid probability plot for a input FASTA file
+
+![alt text](chr.png "plasmid probability")
 
 ## generation of datasets
 
