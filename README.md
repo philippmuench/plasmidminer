@@ -78,7 +78,7 @@ optional arguments:
 
 ## parameter tuning
 
-for hyperparameter optimization RandomizedSearchCV() will be used on 70% a 1% subset of the data using 3-fold cross validation and ROC AUC for optimization goal. Best parameters will be printed to the screen. ROC CURVE will be generated using the remaining 30% of the unseen subset. Due to computational limitations this is only a toy example on 3k instances. 
+for hyperparameter optimization RandomizedSearchCV() will be used on 70% a 1% random subset (stratified by label) of the data using 3-fold cross validation and ROC AUC for optimization goal. Best parameters will be printed to the screen. ROC CURVE will be generated using the remaining 30% of the unseen subset. Due to computational limitations this is only a toy example on 3k instances. 
 
 ![alt text](index.png "ROC")
 
