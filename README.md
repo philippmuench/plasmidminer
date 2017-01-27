@@ -75,27 +75,12 @@ optional arguments:
   --version            show program's version number and exit
 ```
 
-output:
-on a balanced subset with 3k instances (E. coli) 200nt long:
-```
-ROC AUC: 0.86 (+/- 0.02) [Logistic Regression]
-ROC AUC: 0.92 (+/- 0.01) [Random Forest]
-ROC AUC: 0.71 (+/- 0.01) [SVM]
-ROC AUC: 0.93 (+/- 0.01) [Majority Voting]
-```
-
-![alt text](index.png "ROC")
 
 ## parameter tuning
-best SVN paramets based on grid search (precision/recall scores)
 
-`python plasmidminer/svm_grid.py --balanced`
+for hyperparameter optimization RandomizedSearchCV() will be used on 70% a 1% random subset (stratified by label) of the data using 3-fold cross validation and ROC AUC for optimization goal. Best parameters will be printed to the screen. ROC CURVE will be generated using the remaining 30% of the unseen subset. Due to computational limitations this is only a toy example on 3k instances. 
 
-```
-Best parameters set found on development set:
-
-{'kernel': 'rbf', 'C': 1, 'gamma': 0.0001}
-```
+![alt text](index.png "ROC")
 
 ## install
 you may want use virtualenv:
