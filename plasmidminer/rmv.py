@@ -219,6 +219,9 @@ print("train/test set generated")
 rvm = RVC(kernel = 'rbf', gamma = 1)
 rvm.fit(X_sub_train,y_sub_train)
 
-# report on performance
-rvecs = np.sum(rvm.active_[0]==True)
-print classification_report(y_sub_test,rvm.predict(X_sub_test))
+
+start = time()
+rvm.fit(X_sub_train, y_sub_train)
+print("RandomizedSearchCV took %.2f seconds for %d candidates"
+      " parameter settings." % ((time() - start), n_iter_search))
+report(random_search_rf.cv_results_)
