@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import os, csv, sys
 import download, simulate, features
+import os.path
 import argparse
 from termcolor import colored
 
@@ -27,15 +28,33 @@ def loaddata(args):
 	download.downloadChr(args.taxa, args.chrnum, args.gpf)
 	download.downloadPla(args.taxa, args.planum, args.gpf)
 
+
 def getchunks(args):
-	"""Split FASTA files into same-sized fragments and exort them as multiple FASTA file"""
+	"""Split FASTA files into even-sized fragments and exort them as multiple FASTA file"""
 	Printer(colored('(processing) ', 'green') + 'rewrite fasta headers (plasmids)')
-	simulate.split(int(args.chunksize), 'dat/pla/*.fasta', 'dat/plasmid_chunks.fasta', 'dat/pla/*.frag.fasta')
-	simulate.renameheader('positive','dat/plasmid_chunks.fasta')
-	simulate.split(int(args.chunksize), 'dat/chr/*.fasta', 'dat/chromosome_chunks.fasta', 'dat/chr/*.frag.fasta')
+	if args.readsim:
+		if os.path.isfile('dat/plasmid.fasta'):
+			simulate.readsim(int(args.chunksize), int(args.simnum), 'dat/plasmid.fasta', 'dat/plasmid_chunks.fasta')
+		else:
+			print("Error: Cannot find dat/plasmid.fasta. \n")
+			sys.exit(1)
+	else:
+		simulate.split(int(args.chunksize), 'dat/pla/*.fasta', 'dat/plasmid_chunks.fasta', 'dat/pla/*.frag.fasta')
+	
+	if os.path.isfile('dat/plasmid_chunks.fasta'):
+		simulate.renameheader('positive','dat/plasmid_chunks.fasta')
+	else:
+		print("Error: Cannot find dat/plasmid_chunks.fasta. \n")
+		sys.exit(1)
+
+	if args.readsim:
+		simulate.readsim(int(args.chunksize), int(args.simnum), 'dat/chromosome.fasta', 'dat/chromosome_chunks.fasta')
+	else:
+		simulate.split(int(args.chunksize), 'dat/chr/*.fasta', 'dat/chromosome_chunks.fasta', 'dat/chr/*.frag.fasta')
+	
 	Printer(colored('(processing) ', 'green') + 'rewrite fasta headers (chromosomes)')
 	simulate.renameheader('negative','dat/chromosome_chunks.fasta')
-	
+
 def createmerged():
 	"""writes chr/plasmid sequences to one file"""
 	filenames = ['dat/plasmid_chunks.fasta.corrected.fasta.clear', 'dat/chromosome_chunks.fasta.corrected.fasta.clear']
@@ -89,6 +108,8 @@ if __name__ == "__main__":
     parser.add_argument('-a', '--planum', action='store', dest='planum', help='Number of plasmids to be downloaded', default=100)
     parser.add_argument('-b', '--chrnum', action='store', dest='chrnum', help='Number of chromosomes to be downloaded', default=20)
     parser.add_argument('-c', '--chunksize', action='store', dest='chunksize', help='Chunk size in nt', default=200)
+    parser.add_argument('-s', '--readsim', dest='readsim', action='store_true', help='use read simluation based on wgsim instead of sliding window')
+    parser.add_argument('-N', '--simnum', action='store', dest='simnum', help='number of reads to simulate with wgsim', default=10000)
     parser.add_argument('-e', "--email", help='Email adress needed for ncbi file download', dest="email", default="pmu15@helmholtz-hzi.de")
     parser.add_argument('--multi', dest='gpf', action='store_true', help='Prepare data in multi feature format (taxonomic column in train/test samples)')
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
@@ -96,8 +117,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     Entrez.email = args.email # setting Entrez email
+    print("download data")
     loaddata(args)
-    getchunks(args)
+    print('download inished')
+    getchunks(args) #generate chunks using a sliding window approach 
     sequence_cleaner('dat/chromosome_chunks.fasta.corrected.fasta', args)
     sequence_cleaner('dat/plasmid_chunks.fasta.corrected.fasta', args)
     createmerged()
