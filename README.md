@@ -61,26 +61,30 @@ optional arguments:
 
 
 ## train
-to generate the pkl object for classification please run
-```
-usage: train_svm.py [-h] [--model MODEL] [--features FEATURES] [--kmers KMERS]
-                    [--balanced] [--version]
-
-optional arguments:
-  -h, --help           show this help message and exit
-  --model MODEL        Patho to model file.
-  --features FEATURES  Path to features matrix
-  --kmers KMERS        Path to features matrix
-  --balanced
-  --version            show program's version number and exit
-```
-
-
-## parameter tuning
-
-for hyperparameter optimization RandomizedSearchCV() will be used on 70% a 1% random subset (stratified by label) of the data using 3-fold cross validation and ROC AUC for optimization goal. Best parameters will be printed to the screen. ROC CURVE will be generated using the remaining 30% of the unseen subset. Due to computational limitations this is only a toy example on 3k instances. 
+`train.py` will optimize hyperparameters and output the best model fittet on a random subset with the size `--random_size` of the data. During the optimization process it will use roc_auc as validation using cross validation specified using `--iterations` and `--cv`. The best model for each classifier will be saved to `cv/` folder with the model accuracy e.g. `cv/rvc_0.654237288136.pkl` is the model with accuracy of 65%.
 
 ![alt text](index.png "ROC")
+
+```
+usage: train.py [-h] [-t TEST_SIZE] [-r RANDOM_SIZE] [-i ITER] [-c CV] [--lhs]
+                [--roc] [--balance] [--version]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -t TEST_SIZE, --test_size TEST_SIZE
+                        size of test set from whole dataset in percent
+  -r RANDOM_SIZE, --random_size RANDOM_SIZE
+                        size of balanced random subset of data in percent
+  -i ITER, --iterations ITER
+                        number of random iterations or hyperparameter
+                        optimization
+  -c CV, --cv CV        cross validation size (e.g. 10 for 10-fold cross
+                        validation)
+  --roc                 plot ROC curve
+  --balance             balance dataset
+  --version             show program's version number and exit
+
+```
 
 ## install
 you may want use virtualenv:
