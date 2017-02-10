@@ -26,6 +26,10 @@ def savemodel(model, filename):
 	with open(filename, 'wb') as fid:
 		joblib.dump(model, fid, compress=9)
 
+def saveparams(model_best_params, filename):
+	with open(filename, 'wb') as fid:
+		joblib.dump(model_best_params, fid, compress=9)
+
 class Printer():
 	"""Print things to stdout on one line dynamically"""
 
@@ -121,19 +125,21 @@ def build_randomForest(X, y, args):
 			'searching for best parameters for random forest')
 	# specify parameters and distributions to sample from
 	param_dist = {"max_depth": [5, 4, 3, None],
-				  "n_estimators": [500, 2000],
 				  "max_features": sp_randint(1, 50),
 				  "min_samples_split": sp_randint(2, 50),
 				  "min_samples_leaf": sp_randint(1, 50),
 				  "bootstrap": [True, False],
 				  "criterion": ["gini", "entropy"]}
-	clf = RandomForestClassifier()
-	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True)
+	clf = RandomForestClassifier(n_estimators = 2000)
+	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 	acc = random_search.cv_results_['mean_test_score']
 	filename = 'cv/randomforest_' + str(np.amax(acc)) + '.pkl'
 	# save model
 	savemodel(random_search, filename)
+	# save best params
+	filename_param = 'cv/randomforest_param_' + str(np.amax(acc)) + '.pkl'
+	saveparams(random_search.best_params_, filename_param)
 	return random_search
 
 def build_logisticregression(X, y, args):
@@ -146,11 +152,15 @@ def build_logisticregression(X, y, args):
 				  "tol": np.logspace(-9, 3, 13)
 				  }
 	clf = LogisticRegression(penalty='l2')
-	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True)
+	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 	acc = random_search.cv_results_['mean_test_score']
 	filename = 'cv/logisticregression_' + str(np.amax(acc)) + '.pkl'
+	# save model
 	savemodel(random_search, filename)
+	# save best params
+	filename_param = 'cv/logisticregression_param_' + str(np.amax(acc)) + '.json'
+	saveparams(random_search.best_params_, filename_param)
 	return random_search
 
 
@@ -165,12 +175,16 @@ def build_svc(X, y, args):
 		param_dist = {'C': pow(2.0, np.arange(-10, 11, 0.1)),
 		'gamma': pow(2.0, np.arange(-10, 11, 0.1)), 'kernel': ['linear', 'rbf']}
 	clf = SVC(probability=True)
-	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True)
+	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 
 	acc = random_search.cv_results_['mean_test_score']
+	# save model
 	filename = 'cv/svc_' + str(np.amax(acc)) + '.pkl'
 	savemodel(random_search, filename)
+	# save best params
+	filename_param = 'cv/svc_param_' + str(np.amax(acc)) + '.pkl'
+	saveparams(random_search.best_params_, filename_param)
 	return random_search
 #   report(random_search.cv_results_)
 
@@ -187,16 +201,16 @@ def build_rvc(X, y, args):
 		'kernel': ['linear', 'rbf']}
 
 	clf = RVC(kernel='rbf', gamma=1)
-	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy',
-									   n_iter=args.iter, n_jobs=-1, refit=True)
+	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
-
-#   report(random_search.cv_results_)
-
 	acc = random_search.cv_results_['mean_test_score']
 	filename = 'cv/rvc_' + str(np.amax(acc)) + '.pkl'
 	# save model
 	savemodel(random_search, filename)
+	# save best params
+	filename_param = 'cv/rvc_param_' + str(np.amax(acc)) + '.pkl'
+	saveparams(random_search.best_params_, filename_param)
+
 	return random_search
 
 if __name__ == "__main__":
@@ -218,8 +232,8 @@ if __name__ == "__main__":
 	parser.add_argument('--sobol', dest='sobol',
 						action='store_true', help='use sobol sequence for random search')
 	parser.add_argument('--sobol_num', dest='sobol_num',
-						action='store', help='number of sequence instances in sobol sequence')
-	parser.add_argument('--version', action='version', version='%(prog)s 1.0')
+						action='store', help='number of sequence instances in sobol sequence', default=10)
+	parser.add_argument('--version', action='version', version='%(prog)s 0.1')
 	args = parser.parse_args()
 
 	# load/preprocess data
@@ -239,11 +253,13 @@ if __name__ == "__main__":
 	if not os.path.exists('cv'):
 		os.makedirs('cv')
 
-	# build model
+	# optimize hyperparameters model
 	rf_model = build_randomForest(X_train, y_train, args)
 #   lg_model = build_logisticregression(X_train, y_train, args)
 	svc_model = build_svc(X_train, y_train, args)
 	rvc_model = build_rvc(X_train, y_train, args)
+
+
 
 	# save model
 #  Printer(colored('(training) ', 'green') + 'save model')
