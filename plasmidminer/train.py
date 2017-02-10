@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import cPickle
+from scipy import stats
 import argparse
 from termcolor import colored
 import sobol_seq
@@ -64,9 +65,9 @@ def drawroc(clf, clf_labels, X_train, y_train, X_test, y_test):
 	for clf, label, clr, ls \
 			in zip(clf, clf_labels, colors, linestyles):
 		scores = cross_val_score(estimator=clf, X=X_train, y=y_train, cv=int(
-			args.cv), scoring='roc_auc', n_jobs=-1, verbose=3)
-		print("ROC AUC: %0.2f (+/- %0.2f) [%s]" %
-			  (scores.mean(), scores.std(), label))
+			args.cv), scoring='roc_auc', n_jobs=-1)
+	#	print("ROC AUC: %0.2f (+/- %0.2f) [%s]" %
+	#		  (scores.mean(), scores.std(), label))
 		y_pred = clf.fit(X_train, y_train).predict_proba(X_test)[:, 1]
 		fpr, tpr, thresholds = roc_curve(y_true=y_test, y_score=y_pred)
 		roc_auc = auc(x=fpr, y=tpr)
@@ -124,10 +125,10 @@ def build_randomForest(X, y, args):
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for random forest')
 	# specify parameters and distributions to sample from
-	param_dist = {"max_depth": [5, 4, 3, None],
-				  "max_features": sp_randint(1, 50),
-				  "min_samples_split": sp_randint(2, 50),
-				  "min_samples_leaf": sp_randint(1, 50),
+	param_dist = {"max_depth": [100, 50, 20 , 10, 5, 4, 3, 2, None],
+				  "max_features": sp_randint(1, 100),
+				  "min_samples_split": sp_randint(2, 100),
+				  "min_samples_leaf": sp_randint(1, 100),
 				  "bootstrap": [True, False],
 				  "criterion": ["gini", "entropy"]}
 	clf = RandomForestClassifier(n_estimators = 2000)
@@ -140,7 +141,7 @@ def build_randomForest(X, y, args):
 	# save best params
 	filename_param = 'cv/randomforest_param_' + str(np.amax(acc)) + '.pkl'
 	saveparams(random_search.best_params_, filename_param)
-	return random_search
+	return random_search, acc
 
 def build_logisticregression(X, y, args):
 	Printer(colored('(training) ', 'green') +
@@ -172,7 +173,7 @@ def build_svc(X, y, args):
 		param_dist = {'C': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)) * 2** (15),
 				  'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)), 'kernel': ['linear', 'rbf']}
 	else:
-		param_dist = {'C': pow(2.0, np.arange(-10, 11, 0.1)),
+		param_dist = {'C': scipy.stats.expon(scale=100),
 		'gamma': pow(2.0, np.arange(-10, 11, 0.1)), 'kernel': ['linear', 'rbf']}
 	clf = SVC(probability=True)
 	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
@@ -185,7 +186,31 @@ def build_svc(X, y, args):
 	# save best params
 	filename_param = 'cv/svc_param_' + str(np.amax(acc)) + '.pkl'
 	saveparams(random_search.best_params_, filename_param)
-	return random_search
+	return random_search, acc
+#   report(random_search.cv_results_)
+#
+def build_svc_poly(X, y, args):
+	Printer(colored('(training) ', 'green') +
+			'searching for best parameters for SVC (poly)')
+	# specify parameters and distributions to sample from
+	if (args.sobol):
+		param_dist = {'C': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)) * 2** (15),
+				  'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)),'degree': [1,2,4,6,8]}
+	else:
+		param_dist = {'C': scipy.stats.expon(scale=100),
+		'gamma': pow(2.0, np.arange(-10, 11, 0.1)), 'degree': [1,2,4,6,8]}
+	clf = SVC(kernel = 'poly', probability=True)
+	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
+	random_search.fit(X, y)
+
+	acc = random_search.cv_results_['mean_test_score']
+	# save model
+	filename = 'cv/svc_poly_' + str(np.amax(acc)) + '.pkl'
+	savemodel(random_search, filename)
+	# save best params
+	filename_param = 'cv/svc_poly_param_' + str(np.amax(acc)) + '.pkl'
+	saveparams(random_search.best_params_, filename_param)
+	return random_search, acc
 #   report(random_search.cv_results_)
 
 
@@ -194,13 +219,15 @@ def build_rvc(X, y, args):
 			'searching for best parameters for RVC')
 	# specify parameters and distributions to sample from
 	if (args.sobol):
-		param_dist = {'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)),
-				  'kernel': ['linear', 'rbf']}
+		param_dist = {'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)), 'kernel': ['linear', 'rbf']}
+
+#		param_dist = {'C': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)) * 2** (15),
+#				  'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)), 'kernel': ['linear', 'rbf']}
 	else:
 		param_dist = {'gamma': pow(2.0, np.arange(-10, 11, 0.1)),
 		'kernel': ['linear', 'rbf']}
 
-	clf = RVC(kernel='rbf', gamma=1)
+	clf = RVC(kernel='rbf')
 	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 	acc = random_search.cv_results_['mean_test_score']
@@ -210,8 +237,30 @@ def build_rvc(X, y, args):
 	# save best params
 	filename_param = 'cv/rvc_param_' + str(np.amax(acc)) + '.pkl'
 	saveparams(random_search.best_params_, filename_param)
+	return random_search, acc
 
-	return random_search
+def build_rvc_poly(X, y, args):
+	Printer(colored('(training) ', 'green') +
+			'searching for best parameters for RVC with poly kernel')
+	# specify parameters and distributions to sample from
+	if (args.sobol):
+		param_dist = {'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)) , 'degree': [1,2,4,6,8]}
+
+	else:
+		param_dist = {'gamma': pow(2.0, np.arange(-10, 11, 0.1)), 'degree': [1,2,4,6,8]}
+
+	clf = RVC(kernel='poly')
+	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
+	random_search.fit(X, y)
+	acc = random_search.cv_results_['mean_test_score']
+	filename = 'cv/rvc_' + str(np.amax(acc)) + '.pkl'
+	# save model
+	savemodel(random_search, filename)
+	# save best params
+	filename_param = 'cv/rvc_poly_param_' + str(np.amax(acc)) + '.pkl'
+	saveparams(random_search.best_params_, filename_param)
+	return random_search, acc
+
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
@@ -254,19 +303,25 @@ if __name__ == "__main__":
 		os.makedirs('cv')
 
 	# optimize hyperparameters model
-	rf_model = build_randomForest(X_train, y_train, args)
+	rf_model, rf_acc = build_randomForest(X_train, y_train, args)
 #   lg_model = build_logisticregression(X_train, y_train, args)
-	svc_model = build_svc(X_train, y_train, args)
-	rvc_model = build_rvc(X_train, y_train, args)
+	svc_model, svc_acc = build_svc(X_train, y_train, args)
+	svc_poly_model, svc_poly_acc = build_svc_poly(X_train, y_train, args)
+	rvc_model, rvc_acc = build_rvc(X_train, y_train, args)
+	rvc_poly_model, rvc_poly_acc = build_rvc_poly(X_train, y_train, args)
 
+	print('\n')
+	print('--------------------------------------------')
+	print('RF accuracy: %0.2f' % np.amax(rf_acc))
+	print('RVC accuracy: %0.2f' % np.amax(rvc_acc))
+	print('RVC (poly kernel) accuracy: %0.2f' % np.amax(rvc_poly_acc))
+	print('SVC accuracy: %0.2f' % np.amax(svc_acc))
+	print('SVC (poly kernel) accuracy: %0.2f' % np.amax(svc_poly_acc))
+	print('--------------------------------------------')
 
-
-	# save model
-#  Printer(colored('(training) ', 'green') + 'save model')
-#  with open('model.pkl', 'wb') as fid:
-#      cPickle.dump(pipe, fid)
-
-	# draw ROC
-#  if(args.roc):
-#      Printer(colored('(training) ', 'green') + 'draw ROC curve')
-#      drawroc(all_clf, clf_labels, X_train, y_train, X_test, y_test)
+	# draw ROC from the optimized models
+	if args.roc:
+		all_clf = [rf_model, svc_model, svc_poly_model, rvc_model, rvc_poly_model]
+		clf_labels = ['RF', 'SVC', 'SVC (poly)', 'RVC', 'RVC (poly)']
+		Printer(colored('(training) ', 'green') + 'draw ROC curve')
+		drawroc(all_clf, clf_labels, X_train, y_train, X_test, y_test)
