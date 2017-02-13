@@ -6,8 +6,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import cPickle
+import scipy
 from scipy import stats
 import argparse
+from scipy.stats import expon
 from termcolor import colored
 import sobol_seq
 from skbayes.rvm_ard_models import RVR,RVC
@@ -15,6 +17,7 @@ try:
 	from sklearn.externals import joblib
 	from sklearn.model_selection import RandomizedSearchCV
 	from sklearn.ensemble import RandomForestClassifier
+	from sklearn.ensemble import GradientBoostingClassifier
 	from sklearn.linear_model import LogisticRegression
 	from sklearn.svm import SVC
 	from sklearn.model_selection import cross_val_score, train_test_split
@@ -23,20 +26,13 @@ try:
 except ImportError:
 	print 'This script requires sklearn to be installed!'
 
-def savemodel(model, filename):
-	with open(filename, 'wb') as fid:
-		joblib.dump(model, fid, compress=9)
-
-def saveparams(model_best_params, filename):
-	with open(filename, 'wb') as fid:
-		joblib.dump(model_best_params, fid, compress=9)
-
-class Printer():
-	"""Print things to stdout on one line dynamically"""
-
-	def __init__(self, data):
-		sys.stdout.write("\r\x1b[K" + data.__str__())
-		sys.stdout.flush()
+def loaddataset(filename):
+	Printer(colored('(preprocessing) ', 'green') + 'import data')
+	f = open(filename, "r")
+	X = pickle.load(f)
+	y = pickle.load(f)
+	f.close()
+	return(X, y)
 
 def creatematrix(features, kmer, args):
 	stat = pd.read_csv(features, sep=",")
@@ -57,6 +53,22 @@ def creatematrix(features, kmer, args):
 	y = df['label'].tolist()  # extract label
 	X = df.drop(df.columns[[0]], 1)  # remove label
 	return X, y
+
+def savemodel(model, filename):
+	with open(filename, 'wb') as fid:
+		joblib.dump(model, fid, compress=9)
+
+def saveparams(model_best_params, filename):
+	with open(filename, 'wb') as fid:
+		joblib.dump(model_best_params, fid, compress=9)
+
+class Printer():
+	"""Print things to stdout on one line dynamically"""
+
+	def __init__(self, data):
+		sys.stdout.write("\r\x1b[K" + data.__str__())
+		sys.stdout.flush()
+
 
 def drawroc(clf, clf_labels, X_train, y_train, X_test, y_test):
 	""" draw a roc curve for each model in clf, save as roc.png"""
@@ -120,7 +132,6 @@ def report(results, n_top=3):
 			print("Parameters: {0}".format(results['params'][candidate]))
 			print("")
 
-
 def build_randomForest(X, y, args):
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for random forest')
@@ -164,17 +175,16 @@ def build_logisticregression(X, y, args):
 	saveparams(random_search.best_params_, filename_param)
 	return random_search
 
-
 def build_svc(X, y, args):
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for SVC')
 	# specify parameters and distributions to sample from
 	if (args.sobol):
 		param_dist = {'C': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)) * 2** (15),
-				  'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)), 'kernel': ['linear', 'rbf']}
+				  'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)), 'kernel': ['linear', 'rbf', 'poly'], 'degree': [1,2,4,6,8]}
 	else:
 		param_dist = {'C': scipy.stats.expon(scale=100),
-		'gamma': pow(2.0, np.arange(-10, 11, 0.1)), 'kernel': ['linear', 'rbf']}
+		'gamma': pow(2.0, np.arange(-10, 11, 0.1)), 'kernel': ['linear', 'rbf', 'poly'], 'degree': [1,2,4,6,8]}
 	clf = SVC(probability=True)
 	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
@@ -188,46 +198,17 @@ def build_svc(X, y, args):
 	saveparams(random_search.best_params_, filename_param)
 	return random_search, acc
 #   report(random_search.cv_results_)
-#
-def build_svc_poly(X, y, args):
-	Printer(colored('(training) ', 'green') +
-			'searching for best parameters for SVC (poly)')
-	# specify parameters and distributions to sample from
-	if (args.sobol):
-		param_dist = {'C': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)) * 2** (15),
-				  'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)),'degree': [1,2,4,6,8]}
-	else:
-		param_dist = {'C': scipy.stats.expon(scale=100),
-		'gamma': pow(2.0, np.arange(-10, 11, 0.1)), 'degree': [1,2,4,6,8]}
-	clf = SVC(kernel = 'poly', probability=True)
-	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
-	random_search.fit(X, y)
-
-	acc = random_search.cv_results_['mean_test_score']
-	# save model
-	filename = 'cv/svc_poly_' + str(np.amax(acc)) + '.pkl'
-	savemodel(random_search, filename)
-	# save best params
-	filename_param = 'cv/svc_poly_param_' + str(np.amax(acc)) + '.pkl'
-	saveparams(random_search.best_params_, filename_param)
-	return random_search, acc
-#   report(random_search.cv_results_)
-
 
 def build_rvc(X, y, args):
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for RVC')
 	# specify parameters and distributions to sample from
 	if (args.sobol):
-		param_dist = {'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)), 'kernel': ['linear', 'rbf']}
-
-#		param_dist = {'C': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)) * 2** (15),
-#				  'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)), 'kernel': ['linear', 'rbf']}
+		param_dist = {'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)), 'kernel': ['linear', 'rbf', 'poly'], 'degree': [1,2,4,6,8]}
 	else:
 		param_dist = {'gamma': pow(2.0, np.arange(-10, 11, 0.1)),
-		'kernel': ['linear', 'rbf']}
-
-	clf = RVC(kernel='rbf')
+		'kernel': ['linear', 'rbf', 'poly'], 'degree': [1,2,4,6,8]}
+	clf = RVC()
 	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 	acc = random_search.cv_results_['mean_test_score']
@@ -239,37 +220,39 @@ def build_rvc(X, y, args):
 	saveparams(random_search.best_params_, filename_param)
 	return random_search, acc
 
-def build_rvc_poly(X, y, args):
+def build_gbc(X, y, args):
 	Printer(colored('(training) ', 'green') +
-			'searching for best parameters for RVC with poly kernel')
+			'searching for best parameters for GBC forest')
 	# specify parameters and distributions to sample from
-	if (args.sobol):
-		param_dist = {'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)) , 'degree': [1,2,4,6,8]}
-
-	else:
-		param_dist = {'gamma': pow(2.0, np.arange(-10, 11, 0.1)), 'degree': [1,2,4,6,8]}
-
-	clf = RVC(kernel='poly')
+	param_dist = {"n_estimators": [100, 500, 1000],
+	'learning_rate': [0.01, 0.1, 0.1, 0.5, 1.0],
+	'max_depth':[1, 3, 5, 7, 9],
+	'max_features':['auto', 'sqrt', 'log2'],
+	'loss':['deviance','exponential'],
+	'criterion':['friedman_mse', 'mae', 'mse']
+	}
+	clf = GradientBoostingClassifier()
 	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 	acc = random_search.cv_results_['mean_test_score']
-	filename = 'cv/rvc_' + str(np.amax(acc)) + '.pkl'
+	filename = 'cv/gbc_' + str(np.amax(acc)) + '.pkl'
 	# save model
 	savemodel(random_search, filename)
 	# save best params
-	filename_param = 'cv/rvc_poly_param_' + str(np.amax(acc)) + '.pkl'
+	filename_param = 'cv/gcb_param_' + str(np.amax(acc)) + '.pkl'
 	saveparams(random_search.best_params_, filename_param)
 	return random_search, acc
 
-
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
+	parser.add_argument('-d', '--dataset', action='store', dest='dataset',
+						help='path to dataset .pkl object', default='dat/dataset.pkl')
 	parser.add_argument('-t', '--test_size', action='store', dest='test_size',
 						help='size of test set from whole dataset in percent', default=30)
 	parser.add_argument('-r', '--random_size', action='store', dest='random_size',
 						help='size of balanced random subset of data in percent', default=10)
 	parser.add_argument('-i', '--iterations', action='store', dest='iter',
-						help='number of random iterationsfor hyperparameter optimization', default=10)
+						help='number of random iterationsfor hyperparameter optimization', default=5)
 	parser.add_argument('-c', '--cv', action='store', dest='cv',
 						help='cross validation size (e.g. 10 for 10-fold cross validation)', default=3)
 	parser.add_argument('--lhs', dest='lhs',
@@ -285,10 +268,11 @@ if __name__ == "__main__":
 	parser.add_argument('--version', action='version', version='%(prog)s 0.1')
 	args = parser.parse_args()
 
-	# load/preprocess data
-	Printer(colored('(preprocessing) ', 'green') + 'import data')
-	X, y = creatematrix('dat/train.features.clear2.csv',
-						'dat/train.features.kmer', args)
+	# load data from pkl object
+	#X, y = loaddataset(args)
+
+	print('load data')
+	X, y = creatematrix('dat/train.features.clear2.csv','dat/train.features.kmer', args)
 
 	# generate a random subset
 	Printer(colored('(preprocessing) ', 'green') + 'generate a random subset')
@@ -303,25 +287,42 @@ if __name__ == "__main__":
 		os.makedirs('cv')
 
 	# optimize hyperparameters model
-	rf_model, rf_acc = build_randomForest(X_train, y_train, args)
-#   lg_model = build_logisticregression(X_train, y_train, args)
+#	rf_model, rf_acc = build_randomForest(X_train, y_train, args)
+#	lg_model = build_logisticregression(X_train, y_train, args)
 	svc_model, svc_acc = build_svc(X_train, y_train, args)
-	svc_poly_model, svc_poly_acc = build_svc_poly(X_train, y_train, args)
 	rvc_model, rvc_acc = build_rvc(X_train, y_train, args)
-	rvc_poly_model, rvc_poly_acc = build_rvc_poly(X_train, y_train, args)
+	gbc_model, gbc_acc = build_gbc(X_train, y_train, args)
 
 	print('\n')
 	print('--------------------------------------------')
-	print('RF accuracy: %0.2f' % np.amax(rf_acc))
-	print('RVC accuracy: %0.2f' % np.amax(rvc_acc))
-	print('RVC (poly kernel) accuracy: %0.2f' % np.amax(rvc_poly_acc))
-	print('SVC accuracy: %0.2f' % np.amax(svc_acc))
-	print('SVC (poly kernel) accuracy: %0.2f' % np.amax(svc_poly_acc))
+	if 'svc_model' in locals():
+		print('SVC accuracy: %0.2f' % np.amax(svc_acc))
+	if 'rvc_model' in locals():
+		print('RVC accuracy: %0.2f' % np.amax(rvc_acc))
+	if 'rf_model' in locals():
+		print('RF accuracy: %0.2f' % np.amax(rf_acc))
+	if 'gbc_model' in locals():
+		print('GBC accuracy: %0.2f' % np.amax(gbc_acc))
 	print('--------------------------------------------')
 
 	# draw ROC from the optimized models
 	if args.roc:
-		all_clf = [rf_model, svc_model, svc_poly_model, rvc_model, rvc_poly_model]
-		clf_labels = ['RF', 'SVC', 'SVC (poly)', 'RVC', 'RVC (poly)']
+		all_clf = []
+		clf_labels = []
+		if 'svc_model' in locals():
+			all_clf += svc_model
+			all_clf += 'SVC'
+		if 'rvc_model' in locals():
+			all_clf += rvc_model
+			all_clf += 'RVC'
+		if 'rf_model' in locals():
+			all_clf += rf_model
+			all_clf += 'Rf'
+		if 'gbc_model' in locals():
+			all_clf += gbc_model
+			all_clf += 'GBC'
+
+#		all_clf = [rf_model, svc_model, rvc_model]
+#		clf_labels = ['RF', 'SVC', 'RVC']
 		Printer(colored('(training) ', 'green') + 'draw ROC curve')
 		drawroc(all_clf, clf_labels, X_train, y_train, X_test, y_test)
