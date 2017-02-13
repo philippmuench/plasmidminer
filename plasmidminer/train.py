@@ -15,6 +15,10 @@ import sobol_seq
 from skbayes.rvm_ard_models import RVR,RVC
 try:
 	from sklearn.externals import joblib
+	from sklearn.pipeline import Pipeline
+	from sklearn import preprocessing
+	from sklearn.preprocessing import StandardScaler
+	from sklearn.preprocessing import MaxAbsScaler
 	from sklearn.model_selection import RandomizedSearchCV
 	from sklearn.ensemble import RandomForestClassifier
 	from sklearn.ensemble import GradientBoostingClassifier
@@ -25,6 +29,14 @@ try:
 	from sklearn.metrics import auc
 except ImportError:
 	print 'This script requires sklearn to be installed!'
+
+def doscaling(X):
+	Printer(colored('(preprocessing) ', 'green') + 'scale data')
+	# because of the sparse nature of the features, we use MaxAbsScaler here.
+	# RobustScaler cannot befitedto sparse inputs.
+	X_scaled = preprocessing.scale(X)
+	#X_train_maxabs = maxabs_scale(X)
+	return(X_scaled)
 
 def loaddataset(filename):
 	Printer(colored('(preprocessing) ', 'green') + 'import data')
@@ -55,6 +67,7 @@ def creatematrix(features, kmer, args):
 	return X, y
 
 def savemodel(model, filename):
+	Printer(colored('(preprocessing) ', 'green') + 'save model file to cv/ folder')
 	with open(filename, 'wb') as fid:
 		joblib.dump(model, fid, compress=9)
 
@@ -180,13 +193,14 @@ def build_svc(X, y, args):
 			'searching for best parameters for SVC')
 	# specify parameters and distributions to sample from
 	if (args.sobol):
-		param_dist = {'C': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)) * 2** (15),
-				  'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)), 'kernel': ['linear', 'rbf', 'poly'], 'degree': [1,2,4,6,8]}
+		param_dist = {'clf__C': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)) * 2** (15),
+				  'clf__gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)), 'clf__kernel': ['linear', 'rbf', 'poly'], 'clf__degree': [1,2,4,6,8]}
 	else:
-		param_dist = {'C': scipy.stats.expon(scale=100),
-		'gamma': pow(2.0, np.arange(-10, 11, 0.1)), 'kernel': ['linear', 'rbf', 'poly'], 'degree': [1,2,4,6,8]}
+		param_dist = {'clf__C': scipy.stats.expon(scale=100),
+		'clf__gamma': pow(2.0, np.arange(-10, 11, 0.1)), 'clf__kernel': ['linear', 'rbf', 'poly'], 'clf__degree': [1,2,4,6,8]}
 	clf = SVC(probability=True)
-	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
+	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
+	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 
 	acc = random_search.cv_results_['mean_test_score']
@@ -204,12 +218,13 @@ def build_rvc(X, y, args):
 			'searching for best parameters for RVC')
 	# specify parameters and distributions to sample from
 	if (args.sobol):
-		param_dist = {'gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)), 'kernel': ['linear', 'rbf', 'poly'], 'degree': [1,2,4,6,8]}
+		param_dist = {'clf__gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)), 'clf__kernel': ['linear', 'rbf', 'poly'], 'clf__degree': [1,2,4,6,8]}
 	else:
-		param_dist = {'gamma': pow(2.0, np.arange(-10, 11, 0.1)),
-		'kernel': ['linear', 'rbf', 'poly'], 'degree': [1,2,4,6,8]}
+		param_dist = {'clf__gamma': pow(2.0, np.arange(-10, 11, 0.1)),
+		'clf__kernel': ['linear', 'rbf', 'poly'], 'clf__degree': [1,2,4,6,8]}
 	clf = RVC()
-	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
+	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
+	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 	acc = random_search.cv_results_['mean_test_score']
 	filename = 'cv/rvc_' + str(np.amax(acc)) + '.pkl'
@@ -274,6 +289,9 @@ if __name__ == "__main__":
 	print('load data')
 	X, y = creatematrix('dat/train.features.clear2.csv','dat/train.features.kmer', args)
 
+	# get data in shape (MaxAbsCaler)
+	#X = doscaling(X)
+
 	# generate a random subset
 	Printer(colored('(preprocessing) ', 'green') + 'generate a random subset')
 	X_sub, y_sub = balanced_subsample(X, y, subsample_size=0.1)
@@ -287,7 +305,7 @@ if __name__ == "__main__":
 		os.makedirs('cv')
 
 	# optimize hyperparameters model
-#	rf_model, rf_acc = build_randomForest(X_train, y_train, args)
+	rf_model, rf_acc = build_randomForest(X_train, y_train, args)
 #	lg_model = build_logisticregression(X_train, y_train, args)
 	svc_model, svc_acc = build_svc(X_train, y_train, args)
 	rvc_model, rvc_acc = build_rvc(X_train, y_train, args)
