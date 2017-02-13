@@ -5,7 +5,6 @@ detection of plasmid fragments in metagenomic samples
 # draft manuscript
 https://www.overleaf.com/7758191crzmzwwcxftk
 
-
 ## prediction of multiple sequences from FASTA file
 
 ```
@@ -67,7 +66,8 @@ optional arguments:
 
 ```
 usage: train.py [-h] [-t TEST_SIZE] [-r RANDOM_SIZE] [-i ITER] [-c CV] [--lhs]
-                [--roc] [--balance] [--version]
+                [--roc] [--balance] [--sobol] [--sobol_num SOBOL_NUM]
+                [--version]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -76,15 +76,21 @@ optional arguments:
   -r RANDOM_SIZE, --random_size RANDOM_SIZE
                         size of balanced random subset of data in percent
   -i ITER, --iterations ITER
-                        number of random iterations or hyperparameter
+                        number of random iterationsfor hyperparameter
                         optimization
   -c CV, --cv CV        cross validation size (e.g. 10 for 10-fold cross
                         validation)
+  --lhs                 optimize parameters
   --roc                 plot ROC curve
   --balance             balance dataset
+  --sobol               use sobol sequence for random search
+  --sobol_num SOBOL_NUM
+                        number of sequence instances in sobol sequence
   --version             show program's version number and exit
-
 ```
+
+For example to use sobol sequence or optimization (please use plasmidminer.py first to download the dataset):
+`python plasmidminer/train.py --balance --sobol --sobol_num 10 --roc`
 
 ## install
 you may want use virtualenv:
