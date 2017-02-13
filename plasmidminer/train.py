@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import cPickle
+import pickle
 import scipy
 from scipy import stats
 import argparse
@@ -29,14 +30,6 @@ try:
 	from sklearn.metrics import auc
 except ImportError:
 	print 'This script requires sklearn to be installed!'
-
-def doscaling(X):
-	Printer(colored('(preprocessing) ', 'green') + 'scale data')
-	# because of the sparse nature of the features, we use MaxAbsScaler here.
-	# RobustScaler cannot befitedto sparse inputs.
-	X_scaled = preprocessing.scale(X)
-	#X_train_maxabs = maxabs_scale(X)
-	return(X_scaled)
 
 def loaddataset(filename):
 	Printer(colored('(preprocessing) ', 'green') + 'import data')
@@ -77,7 +70,6 @@ def saveparams(model_best_params, filename):
 
 class Printer():
 	"""Print things to stdout on one line dynamically"""
-
 	def __init__(self, data):
 		sys.stdout.write("\r\x1b[K" + data.__str__())
 		sys.stdout.flush()
@@ -149,14 +141,15 @@ def build_randomForest(X, y, args):
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for random forest')
 	# specify parameters and distributions to sample from
-	param_dist = {"max_depth": [100, 50, 20 , 10, 5, 4, 3, 2, None],
-				  "max_features": sp_randint(1, 100),
-				  "min_samples_split": sp_randint(2, 100),
-				  "min_samples_leaf": sp_randint(1, 100),
-				  "bootstrap": [True, False],
-				  "criterion": ["gini", "entropy"]}
+	param_dist = {"clf__max_depth": [100, 50, 20 , 10, 5, 4, 3, 2, None],
+				  "clf__max_features": sp_randint(1, 100),
+				  "clf__min_samples_split": sp_randint(2, 100),
+				  "clf__min_samples_leaf": sp_randint(1, 100),
+				  "clf__bootstrap": [True, False],
+				  "clf__criterion": ["gini", "entropy"]}
 	clf = RandomForestClassifier(n_estimators = 2000)
-	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
+	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
+	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 	acc = random_search.cv_results_['mean_test_score']
 	filename = 'cv/randomforest_' + str(np.amax(acc)) + '.pkl'
@@ -218,10 +211,13 @@ def build_rvc(X, y, args):
 			'searching for best parameters for RVC')
 	# specify parameters and distributions to sample from
 	if (args.sobol):
-		param_dist = {'clf__gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)), 'clf__kernel': ['linear', 'rbf', 'poly'], 'clf__degree': [1,2,4,6,8]}
+		param_dist = {'clf__gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)),
+		'clf__kernel': ['linear', 'rbf', 'poly'],
+		'clf__degree': [1,2,4,6,8]}
 	else:
 		param_dist = {'clf__gamma': pow(2.0, np.arange(-10, 11, 0.1)),
-		'clf__kernel': ['linear', 'rbf', 'poly'], 'clf__degree': [1,2,4,6,8]}
+		'clf__kernel': ['linear', 'rbf', 'poly'],
+		'clf__degree': [1,2,4,6,8]}
 	clf = RVC()
 	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
 	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
@@ -239,15 +235,16 @@ def build_gbc(X, y, args):
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for GBC forest')
 	# specify parameters and distributions to sample from
-	param_dist = {"n_estimators": [100, 500, 1000],
-	'learning_rate': [0.01, 0.1, 0.1, 0.5, 1.0],
-	'max_depth':[1, 3, 5, 7, 9],
-	'max_features':['auto', 'sqrt', 'log2'],
-	'loss':['deviance','exponential'],
-	'criterion':['friedman_mse', 'mae', 'mse']
+	param_dist = {"clf__n_estimators": [100, 500, 1000],
+	'clf__learning_rate': [0.01, 0.1, 0.1, 0.5, 1.0],
+	'clf__max_depth':[1, 3, 5, 7, 9],
+	'clf__max_features':['auto', 'sqrt', 'log2'],
+	'clf__loss':['deviance','exponential'],
+	'clf__criterion':['friedman_mse', 'mae', 'mse']
 	}
 	clf = GradientBoostingClassifier()
-	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
+	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
+	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 	acc = random_search.cv_results_['mean_test_score']
 	filename = 'cv/gbc_' + str(np.amax(acc)) + '.pkl'
@@ -270,12 +267,8 @@ if __name__ == "__main__":
 						help='number of random iterationsfor hyperparameter optimization', default=5)
 	parser.add_argument('-c', '--cv', action='store', dest='cv',
 						help='cross validation size (e.g. 10 for 10-fold cross validation)', default=3)
-	parser.add_argument('--lhs', dest='lhs',
-						action='store_true', help='optimize parameters')
 	parser.add_argument('--roc', dest='roc',
 						action='store_true', help='plot ROC curve')
-	parser.add_argument('--balance', dest='balance',
-						action='store_true', help='balance dataset')
 	parser.add_argument('--sobol', dest='sobol',
 						action='store_true', help='use sobol sequence for random search')
 	parser.add_argument('--sobol_num', dest='sobol_num',
@@ -284,29 +277,24 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 	# load data from pkl object
-	#X, y = loaddataset(args)
-
-	print('load data')
-	X, y = creatematrix('dat/train.features.clear2.csv','dat/train.features.kmer', args)
-
-	# get data in shape (MaxAbsCaler)
-	#X = doscaling(X)
+	X, y = loaddataset(args.dataset)
 
 	# generate a random subset
 	Printer(colored('(preprocessing) ', 'green') + 'generate a random subset')
-	X_sub, y_sub = balanced_subsample(X, y, subsample_size=0.1)
+	X_sub, y_sub = balanced_subsample(X, y, subsample_size=args.random_size)
 
 	# split train/testset
 	Printer(colored('(preprocessing) ', 'green') + 'generate train/test set')
 	X_train, X_test, y_train, y_test = train_test_split(
-		X_sub, y_sub, test_size=0.3)
+		X_sub, y_sub, test_size=args.test_size)
 
+	# create output folder
 	if not os.path.exists('cv'):
 		os.makedirs('cv')
 
 	# optimize hyperparameters model
 	rf_model, rf_acc = build_randomForest(X_train, y_train, args)
-#	lg_model = build_logisticregression(X_train, y_train, args)
+	lg_model = build_logisticregression(X_train, y_train, args)
 	svc_model, svc_acc = build_svc(X_train, y_train, args)
 	rvc_model, rvc_acc = build_rvc(X_train, y_train, args)
 	gbc_model, gbc_acc = build_gbc(X_train, y_train, args)
@@ -339,8 +327,5 @@ if __name__ == "__main__":
 		if 'gbc_model' in locals():
 			all_clf += gbc_model
 			all_clf += 'GBC'
-
-#		all_clf = [rf_model, svc_model, rvc_model]
-#		clf_labels = ['RF', 'SVC', 'RVC']
 		Printer(colored('(training) ', 'green') + 'draw ROC curve')
 		drawroc(all_clf, clf_labels, X_train, y_train, X_test, y_test)
