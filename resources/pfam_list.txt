@@ -1,58 +1,56 @@
-PF01051
-PF01402
-PF01446
-PF01719
-PF01815
-PF02387
-PF02486
-PF03090
-PF03428
-PF04057
-PF04796
-PF05732
-PF06430
-PF06504
-PF06970
-PF07042
-PF08048
-PF10134
-PF01076
-PF03389
-PF03432
-PF04899
-PF05122
-PF05713
-PF00816
-PF01656
-PF01815
-PF01845
-PF02195
-PF02452
-PF02604
-PF02661
-PF03230
-PF03432
-PF03882
-PF04221
-PF05015
-PF05016
-PF05713
-PF06406
-PF06414
-PF06613
-PF06769
-PF06986
-PF07275
-PF07362
-PF07764
-PF08085
-PF08535
-PF08751
-PF08775
-PF08857
-PF08998
-PF09140
-PF09386
-PF10609
-PF10784
-PF12910
+PF01051;Initiator Replication protein;PF01051.19
+PF01402;Ribbon-helix-helix protein, copG family;PF01402.19
+PF01446;Replication protein;PF01446.15
+PF01719;Plasmid replication protein;PF01719.15
+PF02387;IncFII RepA protein family;PF02387.13
+PF02486;Replication initiation factor;PF02486.17
+PF03090;Replicase family;PF03090.15
+PF03428;Replication protein C N-terminal domain;PF03428.11
+PF04057;Replication factor-A protein 1, N-terminal domain;PF04057.10
+PF04796;Plasmid encoded RepA protein;PF04796.10
+PF05732;Firmicute plasmid replication protein (RepL);PF05732.9
+PF06430;Lactococcus lactis RepB C-terminus;PF06430.10
+PF06504;Replication protein C (RepC);PF06504.9
+PF06970;Replication initiator protein A (RepA) N-terminus;PF06970.9
+PF07042;TrfA protein;PF07042.9
+PF08048;Tap RepA1 leader peptide;PF08048.10
+PF10134;Replication initiator protein A;PF10134.7
+PF01076;Plasmid recombination enzyme;PF01076.17
+PF03389;MobA/MobL family;PF03389.13
+PF04899;MbeD/MobD like;PF04899.10
+PF05122;Mobile element transfer protein;PF05122.11
+PF05713;Bacterial mobilisation protein (MobC);PF05713.9
+PF00816;H-NS histone family;PF00816.19
+PF01656;CobQ/CobB/MinD/ParA nucleotide binding domain;PF01656.21
+PF01815;Rop protein;PF01815.14
+PF01845;CcdB protein;PF01845.15
+PF02195;ParB-like nuclease domain;PF02195.16
+PF02452;PemK-like, MazF-like toxin of type II toxin-antitoxin system;PF02452.15
+PF02604;Antitoxin Phd_YefM, type II toxin-antitoxin system;PF02604.17
+PF02661;Fic/DOC family;PF02661.16
+PF03230;Antirestriction protein;PF03230.11
+PF03432;Relaxase/Mobilisation nuclease domain;PF03432.12
+PF03882;MukF winged-helix domain;PF03882.12
+PF04221;RelB antitoxin;PF04221.10
+PF05015;RelE-like toxin of type II toxin-antitoxin system HigB;PF05015.11
+PF05016;ParE toxin of type II toxin-antitoxin system, parDE;PF05016.13
+PF05713;Bacterial mobilisation protein (MobC);PF05713.9
+PF06406;StbA protein;PF06406.9
+PF06414;Zeta toxin;PF06414.10
+PF06613;KorB C-terminal beta-barrel domain;PF06613.9
+PF06769;YoeB-like toxin of bacterial type II toxin-antitoxin system;PF06769.12
+PF06986;Type-1V conjugative transfer system mating pair stabilisation;PF06986.9
+PF07275;Antirestriction protein (ArdA);PF07275.9
+PF07362;Post-segregation antitoxin CcdA;PF07362.10
+PF07764;Omega Transcriptional Repressor;PF07764.9
+PF08085;Entericidin EcnA/B family;PF08085.9
+PF08535;KorB domain;PF08535.8
+PF08751;TrwC relaxase;PF08751.9
+PF08775;ParB family;PF08775.8
+PF08857;Putative ParB-like nuclease;PF08857.9
+PF08998;Bacterial epsilon antitoxin;PF08998.9
+PF09140;ATPase MipZ;PF09140.9
+PF09386;Antitoxin ParD;PF09386.8
+PF10609;NUBPL iron-transfer P-loop NTPase;PF10609.7
+PF10784;Plasmid stability protein;PF10784.7
+PF12910;Antitoxin of toxin-antitoxin;PF12910.5
