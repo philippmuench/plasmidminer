@@ -3,7 +3,6 @@ import os, csv, sys
 import download, simulate, features
 import os.path
 import argparse
-import pickle
 from termcolor import colored
 import pandas as pd
 import glob
@@ -134,6 +133,13 @@ def savepickl(args):
 	pickle.dump(y, f)
 	f.close()
 
+def savemsg(args):
+	Printer(colored('(processing) ', 'green') + 'save dataset as msg object')
+	X, y = creatematrix('dat/train.features.clear2.csv','dat/train.features.kmer', args)
+	y = pd.DataFrame(y)
+	X.to_msgpack(args.save)
+	y.to_msgpack(args.save, append=True)
+
 def runHmmer(args, list_path, file_path, f):
 	if not os.path.exists('dat/tmp'):
 		os.makedirs('dat/tmp')
@@ -178,7 +184,7 @@ def screenhmm(args):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--save', action='store', dest='save', help='Save dataset as pckl object', default='dat/dataset.pkl')
+	parser.add_argument('--save', action='store', dest='save', help='Save dataset as msg pack object', default='dat/dataset.msg')
 	parser.add_argument('-t', '--taxa', action='store', dest='taxa', help='Taxonomic name for downloaded samples', default='Escherichia coli')
 	parser.add_argument('-a', '--planum', action='store', dest='planum', help='Number of plasmids to be downloaded', default=100)
 	parser.add_argument('-b', '--chrnum', action='store', dest='chrnum', help='Number of chromosomes to be downloaded', default=20)
@@ -205,4 +211,4 @@ if __name__ == "__main__":
 	getstatfeatures()
 	compress()
 	extractkmers()
-	savepickl(args)
+	savemsg(args)

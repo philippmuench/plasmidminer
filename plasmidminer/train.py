@@ -33,10 +33,11 @@ except ImportError:
 
 def loaddataset(filename):
 	Printer(colored('(preprocessing) ', 'green') + 'import data')
-	f = open(filename, "r")
-	X = pickle.load(f)
-	y = pickle.load(f)
-	f.close()
+	X, y= pd.read_msgpack('dat/dataset.msg')
+#	f = open(filename, "r")
+#	X = pickle.load(f)
+#	y = pickle.load(f)
+#	f.close()
 	return(X, y)
 
 def creatematrix(features, kmer, args):
@@ -186,8 +187,8 @@ def build_svc(X, y, args):
 			'searching for best parameters for SVC')
 	# specify parameters and distributions to sample from
 	if (args.sobol):
-		param_dist = {'clf__C': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)) * 2** (15),
-				  'clf__gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)), 'clf__kernel': ['linear', 'rbf', 'poly'], 'clf__degree': [1,2,4,6,8]}
+		param_dist = {'clf__C': sobol_seq.i4_sobol_generate(1, int(args.iter)) * 2** (15),
+				  'clf__gamma': sobol_seq.i4_sobol_generate(1, int(args.iter)), 'clf__kernel': ['linear', 'rbf', 'poly'], 'clf__degree': [1,2,4,6,8]}
 	else:
 		param_dist = {'clf__C': scipy.stats.expon(scale=100),
 		'clf__gamma': pow(2.0, np.arange(-10, 11, 0.1)), 'clf__kernel': ['linear', 'rbf', 'poly'], 'clf__degree': [1,2,4,6,8]}
@@ -211,7 +212,7 @@ def build_rvc(X, y, args):
 			'searching for best parameters for RVC')
 	# specify parameters and distributions to sample from
 	if (args.sobol):
-		param_dist = {'clf__gamma': sobol_seq.i4_sobol_generate(1, int(args.sobol_num)),
+		param_dist = {'clf__gamma': sobol_seq.i4_sobol_generate(1, int(args.iter)),
 		'clf__kernel': ['linear', 'rbf', 'poly'],
 		'clf__degree': [1,2,4,6,8]}
 	else:
@@ -271,8 +272,6 @@ if __name__ == "__main__":
 						action='store_true', help='plot ROC curve')
 	parser.add_argument('--sobol', dest='sobol',
 						action='store_true', help='use sobol sequence for random search')
-	parser.add_argument('--sobol_num', dest='sobol_num',
-						action='store', help='number of sequence instances in sobol sequence', default=10)
 	parser.add_argument('--version', action='version', version='%(prog)s 0.1')
 	args = parser.parse_args()
 
@@ -281,12 +280,12 @@ if __name__ == "__main__":
 
 	# generate a random subset
 	Printer(colored('(preprocessing) ', 'green') + 'generate a random subset')
-	X_sub, y_sub = balanced_subsample(X, y, subsample_size=args.random_size)
+	X_sub, y_sub = balanced_subsample(X, y, subsample_size=int(args.random_size))
 
 	# split train/testset
 	Printer(colored('(preprocessing) ', 'green') + 'generate train/test set')
 	X_train, X_test, y_train, y_test = train_test_split(
-		X_sub, y_sub, test_size=args.test_size)
+		X_sub, y_sub, test_size=int(args.test_size))
 
 	# create output folder
 	if not os.path.exists('cv'):
@@ -294,7 +293,7 @@ if __name__ == "__main__":
 
 	# optimize hyperparameters model
 	rf_model, rf_acc = build_randomForest(X_train, y_train, args)
-	lg_model = build_logisticregression(X_train, y_train, args)
+	#lg_model = build_logisticregression(X_train, y_train, args)
 	svc_model, svc_acc = build_svc(X_train, y_train, args)
 	rvc_model, rvc_acc = build_rvc(X_train, y_train, args)
 	gbc_model, gbc_acc = build_gbc(X_train, y_train, args)
