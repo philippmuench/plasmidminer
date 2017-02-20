@@ -6,6 +6,9 @@ import argparse
 import pickle
 from termcolor import colored
 import pandas as pd
+import glob
+import ntpath
+from Bio import SearchIO
 
 try:
 	from Bio import Entrez
@@ -27,8 +30,8 @@ def loaddata(args):
 	args.planum: int, max. number of plasmid genomes that will be downloaded
 	args.gpf: boolean, If True, gpf files will be downloaded for each NCBI genome. False on deault.
 	"""
-	download.downloadChr(args.taxa, args.chrnum, args.gpf)
-	download.downloadPla(args.taxa, args.planum, args.gpf)
+	download.downloadChr(args.taxa, args)
+	download.downloadPla(args.taxa, args)
 
 def creatematrix(features, kmer, args):
 	stat = pd.read_csv(features, sep=",")
@@ -131,6 +134,48 @@ def savepickl(args):
 	pickle.dump(y, f)
 	f.close()
 
+def runHmmer(args, list_path, file_path, f):
+	if not os.path.exists('dat/tmp'):
+		os.makedirs('dat/tmp')
+	# get the sample group
+	head, group = os.path.split(os.path.split(file_path)[0])
+	basename = os.path.splitext(str(ntpath.basename(str(file_path))))[0]
+	exportpath = 'dat/tmp/' + ntpath.basename(str(file_path))
+	hmmpath = 'dat/tmp/' + ntpath.basename(str(file_path)) + '.out'
+	print('Processing %s of group %s' % (basename, group))
+	s = " "
+	cmd = ("prodigal -p meta -i",  str(file_path), "-a", exportpath, '-d /dev/null > /dev/null 2> /dev/null')
+	os.system(s.join( cmd ))
+	# run hmmsearch on faa ORF files
+	s = " "
+	cmd = ("hmmsearch -E 0.001 --domtblout", hmmpath, 'resources/remove.hmm', exportpath, '> /dev/null 2> /dev/null')
+	os.system(s.join( cmd ))
+	# write it to output file if there is a hit
+	with open(hmmpath, 'rU') as input:
+		try:
+			for qresult in SearchIO.parse(input, 'hmmscan3-domtab'):
+				query_id = qresult.id
+				hits = qresult.hits
+				num_hits = len(hits)
+				acc = qresult.accession
+				if num_hits > 0:
+					f.write(''.join((basename, '\t', str(file_path),'\n')))
+		except ValueError:
+			print('parsing error on %s' % basename)
+
+def screenhmm(args):
+	remove_list = 'dat/chr_to_remove.txt'
+	Printer(colored('(processing) ', 'green') + 'screen downloaded chr for plasmid domains')
+	fastalist = filter(os.path.isfile, glob.glob('dat/chr/*.fasta'))
+	if not fastalist:
+		sys.stderr.write("No fasta files found.\n")
+		exit(1)
+	else:
+		f = open(remove_list,'w')
+		for filename in fastalist:
+			runHmmer(args, remove_list, filename, f)
+		f.close()
+
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--save', action='store', dest='save', help='Save dataset as pckl object', default='dat/dataset.pkl')
@@ -141,13 +186,18 @@ if __name__ == "__main__":
 	parser.add_argument('-s', '--readsim', dest='readsim', action='store_true', help='use read simluation based on wgsim instead of sliding window')
 	parser.add_argument('-N', '--simnum', action='store', dest='simnum', help='number of reads to simulate with wgsim', default=1000)
 	parser.add_argument('-e', "--email", help='Email adress needed for ncbi file download', dest="email", default="pmu15@helmholtz-hzi.de")
-	#parser.add_argument('--multi', dest='gpf', action='store_true', help='Prepare data in multi feature format (taxonomic column in train/test samples)')
+	parser.add_argument('--multi', dest='gpf', action='store_true', help='Prepare data in multi feature format (taxonomic column in train/test samples)')
+	parser.add_argument('--no_download', dest='no_download', action='store_true', help='use dataset stored in dat/')
+	parser.add_argument('--screen', dest='screen', action='store_true', help='Screen downloaded chr for plasmid specific domains and remove them')
 	parser.add_argument('--version', action='version', version='%(prog)s 1.0')
 
 	args = parser.parse_args()
 
-	Entrez.email = args.email # setting Entrez email
-	loaddata(args)
+	if not args.no_download:
+		Entrez.email = args.email # setting Entrez email
+		loaddata(args)
+	if args.screen:
+		screenhmm(args)
 	getchunks(args) #generate chunks using a sliding window approach
 	sequence_cleaner('dat/chromosome_chunks.fasta.corrected.fasta', args)
 	sequence_cleaner('dat/plasmid_chunks.fasta.corrected.fasta', args)
