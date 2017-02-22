@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# evaluation of different classifiers for plasmid/chr discrimination
+# philipp.muench@helmholtz-hzi.de
 from scipy.stats import randint as sp_randint
 import sys
 import os
@@ -32,15 +34,13 @@ except ImportError:
 	print 'This script requires sklearn to be installed!'
 
 def loaddataset(filename):
+	"""Loads feature matrix from a msgpack obj"""
 	Printer(colored('(preprocessing) ', 'green') + 'import data')
 	X, y= pd.read_msgpack('dat/dataset.msg')
-#	f = open(filename, "r")
-#	X = pickle.load(f)
-#	y = pickle.load(f)
-#	f.close()
 	return(X, y)
 
 def creatematrix(features, kmer, args):
+	"""Generates feature matrix from raw data"""
 	stat = pd.read_csv(features, sep=",")
 	kmer = pd.read_csv(kmer, sep="\t", header=None)
 	kmer = kmer.iloc[:, :-1]
@@ -55,12 +55,12 @@ def creatematrix(features, kmer, args):
 	df.loc[df.label == 'positive', 'label'] = 1
 	df.loc[df.label == 'negative', 'label'] = 0
 	# get number of instances per group
-
 	y = df['label'].tolist()  # extract label
 	X = df.drop(df.columns[[0]], 1)  # remove label
 	return X, y
 
 def savemodel(model, filename):
+	"""Saves the model to the cv/ folder"""
 	Printer(colored('(preprocessing) ', 'green') + 'save model file to cv/ folder')
 	with open(filename, 'wb') as fid:
 		joblib.dump(model, fid, compress=9)
@@ -75,9 +75,8 @@ class Printer():
 		sys.stdout.write("\r\x1b[K" + data.__str__())
 		sys.stdout.flush()
 
-
 def drawroc(clf, clf_labels, X_train, y_train, X_test, y_test):
-	""" draw a roc curve for each model in clf, save as roc.png"""
+	"""draw a roc curve for each model in clf, save as roc.png"""
 	colors = ['black', 'orange', 'blue', 'green']
 	linestyles = [':', '--', '-.', '-']
 	for clf, label, clr, ls \
@@ -103,6 +102,7 @@ def drawroc(clf, clf_labels, X_train, y_train, X_test, y_test):
 	plt.show()
 
 def balanced_subsample(x, y, subsample_size=1.0):
+	"""Balances the dataset in  a 1:1 fashion"""
 	class_xs = []
 	min_elems = None
 	for yi in np.unique(y):
@@ -128,6 +128,7 @@ def balanced_subsample(x, y, subsample_size=1.0):
 	return xs, ys
 
 def report(results, n_top=3):
+	"""Prints the model validation scores and best parameter to screen"""
 	for i in range(1, n_top + 1):
 		candidates = np.flatnonzero(results['rank_test_score'] == i)
 		for candidate in candidates:
@@ -139,6 +140,7 @@ def report(results, n_top=3):
 			print("")
 
 def build_randomForest(X, y, args):
+	"""finds best parameters for random forest"""
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for random forest')
 	# specify parameters and distributions to sample from
@@ -162,6 +164,7 @@ def build_randomForest(X, y, args):
 	return random_search, acc
 
 def build_logisticregression(X, y, args):
+	"""finds best parameters for logistic regression"""
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for logistic regression')
 	# specify parameters and distributions to sample from
@@ -183,6 +186,7 @@ def build_logisticregression(X, y, args):
 	return random_search
 
 def build_svc(X, y, args):
+	"""finds best parameters for support vector machine"""
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for SVC')
 	# specify parameters and distributions to sample from
@@ -196,7 +200,6 @@ def build_svc(X, y, args):
 	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
 	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
-
 	acc = random_search.cv_results_['mean_test_score']
 	# save model
 	filename = 'cv/svc_' + str(np.amax(acc)) + '.pkl'
@@ -208,6 +211,7 @@ def build_svc(X, y, args):
 #   report(random_search.cv_results_)
 
 def build_rvc(X, y, args):
+	"""finds best parameters for relevance vector machine"""
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for RVC')
 	# specify parameters and distributions to sample from
@@ -233,6 +237,7 @@ def build_rvc(X, y, args):
 	return random_search, acc
 
 def build_gbc(X, y, args):
+	"""finds best parameters for gradient boosting classifier"""
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for GBC forest')
 	# specify parameters and distributions to sample from
@@ -275,7 +280,7 @@ if __name__ == "__main__":
 	parser.add_argument('--version', action='version', version='%(prog)s 0.1')
 	args = parser.parse_args()
 
-	# load data from pkl object
+	# load data from msgpack object
 	X, y = loaddataset(args.dataset)
 
 	# generate a random subset
