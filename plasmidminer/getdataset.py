@@ -22,17 +22,12 @@ class Printer():
 		sys.stdout.flush()
 
 def loaddata(args):
-	"""
-	Download FASTA files from NCBI
-	args.taxa: str, part of the NCBI search command that contain the taxonomic information.
-	args.chrnum: int, max. number of chromosom genomes that will be downloaded
-	args.planum: int, max. number of plasmid genomes that will be downloaded
-	args.gpf: boolean, If True, gpf files will be downloaded for each NCBI genome. False on deault.
-	"""
+	"""Download FASTA files from NCBI"""
 	download.downloadChr(args)
 	download.downloadPla(args)
 
 def creatematrix(features, kmer, args):
+	"""Generates feature matrix from raw data"""
 	stat = pd.read_csv(features, sep=",")
 	kmer = pd.read_csv(kmer, sep="\t", header=None)
 	kmer = kmer.iloc[:, :-1]
@@ -47,7 +42,6 @@ def creatematrix(features, kmer, args):
 	df.loc[df.label == 'positive', 'label'] = 1
 	df.loc[df.label == 'negative', 'label'] = 0
 	# get number of instances per group
-
 	y = df['label'].tolist()  # extract label
 	X = df.drop(df.columns[[0]], 1)  # remove label
 	return X, y
@@ -126,6 +120,7 @@ def sequence_cleaner(fasta_file, args):
 	output_file.close()
 
 def savepickl(args):
+	"""saves dataset as pickl object"""
 	Printer(colored('(processing) ', 'green') + 'save dataset as pickl object')
 	X, y = creatematrix('dat/train.features.clear2.csv','dat/train.features.kmer', args)
 	f = open(args.save, "w")
@@ -134,6 +129,7 @@ def savepickl(args):
 	f.close()
 
 def savemsg(args):
+	"""saves dataset as msgpack object"""
 	Printer(colored('(processing) ', 'green') + 'save dataset as msg object')
 	X, y = creatematrix('dat/train.features.clear2.csv','dat/train.features.kmer', args)
 	y = pd.DataFrame(y)
@@ -141,6 +137,7 @@ def savemsg(args):
 	y.to_msgpack(args.save, append=True)
 
 def runHmmer(args, list_path, file_path, f):
+	"""run prodigal and hmmsearch on chr files"""
 	if not os.path.exists('dat/tmp'):
 		os.makedirs('dat/tmp')
 	# get the sample group
@@ -170,6 +167,7 @@ def runHmmer(args, list_path, file_path, f):
 			print('parsing error on %s' % basename)
 
 def screenhmm(args):
+	"""walkes through the files we want to screen for hmm model"""
 	remove_list = 'dat/chr_to_remove.txt'
 	Printer(colored('(processing) ', 'green') + 'screen downloaded chr for plasmid domains')
 	fastalist = filter(os.path.isfile, glob.glob('dat/chr/*.fasta'))
@@ -199,16 +197,25 @@ if __name__ == "__main__":
 
 	args = parser.parse_args()
 
+	# do not download data
 	if not args.no_download:
 		Entrez.email = args.email # setting Entrez email
 		loaddata(args)
+	# screen data
 	if args.screen:
 		screenhmm(args)
-	getchunks(args) #generate chunks using a sliding window approach
+	# split data into small read sized subset using sliding window approach
+	getchunks(args)
+	# remove sequences that are too short
 	sequence_cleaner('dat/chromosome_chunks.fasta.corrected.fasta', args)
 	sequence_cleaner('dat/plasmid_chunks.fasta.corrected.fasta', args)
+	# merge genomes to one file
 	createmerged()
+	# export features such as GC content
 	getstatfeatures()
+	# compress fasta file
 	compress()
+	# extract kmer content
 	extractkmers()
+	# save feature data as msgpack object
 	savemsg(args)
