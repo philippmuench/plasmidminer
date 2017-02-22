@@ -29,8 +29,8 @@ def loaddata(args):
 	args.planum: int, max. number of plasmid genomes that will be downloaded
 	args.gpf: boolean, If True, gpf files will be downloaded for each NCBI genome. False on deault.
 	"""
-	download.downloadChr(args.taxa, args)
-	download.downloadPla(args.taxa, args)
+	download.downloadChr(args)
+	download.downloadPla(args)
 
 def creatematrix(features, kmer, args):
 	stat = pd.read_csv(features, sep=",")
