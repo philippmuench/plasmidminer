@@ -74,7 +74,7 @@ def getchunks(args):
 	Printer(colored('(processing) ', 'green') + 'rewrite fasta headers (chromosomes)')
 	simulate.renameheader('negative', str(args.data) + '/chromosome_chunks.fasta')
 
-def createmerged():
+def createmerged(args):
 	"""writes chr/plasmid sequences to one file"""
 	filenames = [str(args.data) + '/plasmid_chunks.fasta.corrected.fasta.clear', str(args.data) + '/chromosome_chunks.fasta.corrected.fasta.clear']
 	fname = str(args.data) + '/train.fasta'
@@ -84,7 +84,7 @@ def createmerged():
 				for line in infile:
 					outfile.write(line)
 
-def getstatfeatures():
+def getstatfeatures(args):
 	"""export statistical properties of fasta files as features"""
 	Printer(colored('(processing) ', 'green') + 'generate feature matrix')
 	s = ""
@@ -104,14 +104,14 @@ def getstatfeatures():
 	os.system(s.join( cmd ))
 
 
-def compress():
+def compress(args):
 	"""compress train.fasta files"""
 	Printer(colored('(processing) ', 'green') + 'compress files')
 	s = ""
 	cmd = ('gzip --keep ', str(args.data), '/train.fasta')
 	os.system(s.join( cmd ))
 
-def extractkmers():
+def extractkmers(args):
 	Printer(colored('(processing) ', 'green') + 'extract kmer profile')
 	s = ""
 	cmd = ('src/fasta2kmers2 -i ', str(args.data), '/train.fasta -f ', str(args.data), '/train.features.kmer -j 4 -k 6 -s 0')
