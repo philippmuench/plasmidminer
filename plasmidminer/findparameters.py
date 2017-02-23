@@ -35,12 +35,13 @@ except ImportError:
 
 def loaddataset(filename):
 	"""Loads feature matrix from a msgpack obj"""
-	Printer(colored('(preprocessing) ', 'green') + 'import data')
+	Printer(colored('(preprocessing) ', 'green') + 'import data (from binary file)')
 	X, y= pd.read_msgpack('dat/dataset.msg')
 	return(X, y)
 
 def creatematrix(features, kmer, args):
 	"""Generates feature matrix from raw data"""
+	Printer(colored('(preprocessing) ', 'green') + 'import data (from raw filess)')
 	stat = pd.read_csv(features, sep=",")
 	kmer = pd.read_csv(kmer, sep="\t", header=None)
 	kmer = kmer.iloc[:, :-1]
@@ -145,14 +146,14 @@ def build_randomForest(X, y, args):
 			'searching for best parameters for random forest')
 	# specify parameters and distributions to sample from
 	param_dist = {"clf__max_depth": [100, 50, 20 , 10, 5, 4, 3, 2, None],
-				  "clf__max_features": sp_randint(1, 100),
+				  "clf__max_features": sp_randint(1, 50),
 				  "clf__min_samples_split": sp_randint(2, 100),
 				  "clf__min_samples_leaf": sp_randint(1, 100),
 				  "clf__bootstrap": [True, False],
 				  "clf__criterion": ["gini", "entropy"]}
 	clf = RandomForestClassifier(n_estimators = 2000)
 	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
-	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
+	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=int(args.iter), n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 	acc = random_search.cv_results_['mean_test_score']
 	filename = 'cv/randomforest_' + str(np.amax(acc)) + '.pkl'
@@ -174,7 +175,7 @@ def build_logisticregression(X, y, args):
 				  "tol": np.logspace(-9, 3, 13)
 				  }
 	clf = LogisticRegression(penalty='l2')
-	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
+	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=int(args.iter), n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 	acc = random_search.cv_results_['mean_test_score']
 	filename = 'cv/logisticregression_' + str(np.amax(acc)) + '.pkl'
@@ -198,7 +199,7 @@ def build_svc(X, y, args):
 		'clf__gamma': pow(2.0, np.arange(-10, 11, 0.1)), 'clf__kernel': ['linear', 'rbf', 'poly'], 'clf__degree': [1,2,4,6,8]}
 	clf = SVC(probability=True)
 	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
-	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
+	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=int(args.iter), n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 	acc = random_search.cv_results_['mean_test_score']
 	# save model
@@ -225,7 +226,7 @@ def build_rvc(X, y, args):
 		'clf__degree': [1,2,4,6,8]}
 	clf = RVC()
 	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
-	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
+	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=int(args.iter), n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 	acc = random_search.cv_results_['mean_test_score']
 	filename = 'cv/rvc_' + str(np.amax(acc)) + '.pkl'
@@ -250,7 +251,7 @@ def build_gbc(X, y, args):
 	}
 	clf = GradientBoostingClassifier()
 	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
-	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=args.iter, n_jobs=-1, refit=True, cv=3)
+	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=int(args.iter), n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X, y)
 	acc = random_search.cv_results_['mean_test_score']
 	filename = 'cv/gbc_' + str(np.amax(acc)) + '.pkl'
@@ -260,6 +261,14 @@ def build_gbc(X, y, args):
 	filename_param = 'cv/gcb_param_' + str(np.amax(acc)) + '.pkl'
 	saveparams(random_search.best_params_, filename_param)
 	return random_search, acc
+
+def showinput(X,string):
+	"""outputs basic statistics of input files"""
+	print('\n-------------------------------------------------------------')
+	print(str(string))
+	print "number of instances:\t", X.shape[0]
+	print "number of features:\t", X.shape[1]
+	print('-------------------------------------------------------------\n')
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
@@ -272,7 +281,8 @@ if __name__ == "__main__":
 	parser.add_argument('-i', '--iterations', action='store', dest='iter',
 						help='number of random iterationsfor hyperparameter optimization', default=5)
 	parser.add_argument('-c', '--cv', action='store', dest='cv',
-						help='cross validation size (e.g. 10 for 10-fold cross validation)', default=3)
+						help='cross validation size (e.g. 10 for 10-fold cross validation) for ROC', default=3)
+	# binary
 	parser.add_argument('--roc', dest='roc',
 						action='store_true', help='plot ROC curve')
 	parser.add_argument('--sobol', dest='sobol',
@@ -281,16 +291,25 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 	# load data from msgpack object
-	X, y = loaddataset(args.dataset)
+#	X, y = loaddataset(args.dataset)
+
+	X, y = creatematrix('dat/train.features.clear2.csv','dat/train.features.kmer', args)
+
+	# print input data
+	showinput(X, 'imported data')
 
 	# generate a random subset
 	Printer(colored('(preprocessing) ', 'green') + 'generate a random subset')
 	X_sub, y_sub = balanced_subsample(X, y, subsample_size=int(args.random_size))
 
+
 	# split train/testset
 	Printer(colored('(preprocessing) ', 'green') + 'generate train/test set')
-	X_train, X_test, y_train, y_test = train_test_split(
-		X_sub, y_sub, test_size=int(args.test_size))
+	X_train, X_test, y_train, y_test = train_test_split(X_sub, y_sub, test_size=int(args.test_size))
+
+	# print input data
+	showinput(X_train, 'training data')
+
 
 	# create output folder
 	if not os.path.exists('cv'):
