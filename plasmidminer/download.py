@@ -25,8 +25,8 @@ class Printer():
 		sys.stdout.flush()
 
 def downloadChr(args):
-	if not os.path.exists('dat/chr'):
-		os.makedirs('dat/chr')
+	if not os.path.exists(str(args.data) + '/chr'):
+		os.makedirs(str(args.data) + '/chr')
 	search_term = '"' + str(args.taxa) + '"[Organism] AND complete genome[title]'
 	Printer(colored('(download chromosomes) ', 'green') + 'searching for chromosomes (search term: ' + search_term + ')')
 	time.sleep(5)
@@ -41,12 +41,12 @@ def downloadChr(args):
 		if(args.gpf):
 			time.sleep(1)
 			record_gpf = Entrez.efetch(db="protein", id=genome_id, format="gpf")
-			filename_gpf = 'dat/chr/geneBankRecord_{}.gpf'.format(genome_id)
+			filename_gpf = str(args.data) + '/chr/geneBankRecord_{}.gpf'.format(genome_id)
 	#	if(args.screen):
 	#		time.sleep(3)
 	#		record_faa = Entrez.efetch(db="nucleotide", id=genome_id, rettype="gb", retmode="text")
 	#		filename_faa = 'dat/chr/geneBankRecord_{}.faa'.format(genome_id)
-		filename = 'dat/chr/genBankRecord_{}.fasta'.format(genome_id)
+		filename = str(args.data) + '/chr/genBankRecord_{}.fasta'.format(genome_id)
 		if not os.path.exists(filename):
 			Printer(colored('(download chromosomes) ', 'green') + colored('['+str(i) +'/' + str(len(genome_ids))+ '] ', 'blue') + 'add genome (ID: ' + str(genome_id) + ') to collection')
 			with open(filename, 'w') as f:
@@ -67,9 +67,9 @@ def downloadChr(args):
 	#    bar.next()
 	#bar.finish()
 	# create multiple sequence fasta file
-	filenames = glob.glob("dat/chr/*.fasta")
+	filenames = glob.glob(str(args.data) + "/chr/*.fasta")
 	Printer(colored("merging files...", 'green'))
-	with open('dat/chromosome.fasta', 'w') as outfile:
+	with open(str(args.data) +'/chromosome.fasta', 'w') as outfile:
 		for fname in filenames:
 			with open(fname) as infile:
 				for line in infile:
@@ -78,8 +78,8 @@ def downloadChr(args):
 def downloadPla(args):
 	# imports all E.Coli plasmids as positive samples
 	# create download folders
-	if not os.path.exists('dat/pla'):
-		os.makedirs('dat/pla')
+	if not os.path.exists(str(args.data) + '/pla'):
+		os.makedirs(str(args.data) + '/pla')
 	# get the genome ids
 	search_term = "'" + str(args.taxa) + '"[Organism] AND (bacteria[filter] AND plasmid[filter])'
 	Printer(colored('(download plasmids) ', 'green') + 'searching for chromosomes (search term: ' + search_term + ')')
@@ -93,11 +93,11 @@ def downloadPla(args):
 		Printer(colored('(download plasmids) ', 'green')+ colored('['+str(i) +'/' + str(len(genome_ids)) + '] ', 'blue')+ 'fetching database (ID:' + str(genome_id) + ')')
 		record = Entrez.efetch(db="nucleotide", id=genome_id, rettype="fasta", retmode="text")
 		# write gb record
-		filename = 'dat/pla/genBankRecord_{}.fasta'.format(genome_id)
+		filename = str(args.data) + '/pla/genBankRecord_{}.fasta'.format(genome_id)
 		if(args.gpf):
 			time.sleep(1)
 			record_gpf = Entrez.efetch(db="protein", id=genome_id, format="gpf")
-			filename_gpf = 'dat/pla/geneBankRecord_{}.gpf'.format(genome_id)
+			filename_gpf = str(args.data) + '/pla/geneBankRecord_{}.gpf'.format(genome_id)
 #		if(args.screen):
 #			record_faa = Entrez.efetch(db="nucleotide", id=genome_id, rettype="gb", retmode="text")
 #			filename_faa = 'dat/pla/geneBankRecord_{}.faa'.format(genome_id)
@@ -121,9 +121,9 @@ def downloadPla(args):
 	#	bar.next()
 	#bar.finish()
 	# create multiple sequence fasta file
-	filenames = glob.glob("dat/pla/*.fasta")
+	filenames = glob.glob(str(args.data) + "/pla/*.fasta")
 	Printer(colored("merging files...", 'green'))
-	with open('dat/plasmid.fasta', 'w') as outfile:
+	with open(str(args.data) + '/plasmid.fasta', 'w') as outfile:
 		for fname in filenames:
 			with open(fname) as infile:
 				for line in infile:
