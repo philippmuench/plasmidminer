@@ -1,14 +1,80 @@
-# plasmidminer
+A method for the *in silico* detection of plasmid fragments in environmental samples
 
-detection of plasmid fragments in metagenomic samples
+manuscript draft: https://www.overleaf.com/7758191crzmzwwcxftk
 
-# draft manuscript
-https://www.overleaf.com/7758191crzmzwwcxftk
+### Table of Contents
+[Worklow](#building-a-model)
+[Basic usage](#basic-usage)
+[Installation](#installation)
+[Citing](#citing)
 
-## prediction of multiple sequences from FASTA file
+# Building a model
+### Step 1: download *E. Coli* learning data
+
+- *Input: command line parameters*
+- *Output: raw dataset, csv feature matrix and binary object for learning task*
+
+We download all E. Coli complete genomes and plasmids from NCBI and randomly sample 10000 reads with the size of 150 nt from both datasets. These randomly sampled reads are even distributed from all genomes in the collection.
 
 ```
-usage: predict.py [-h] [-i INPUT] [-m MODEL] [-s] [-p] [--version]
+python plasmidminer/plasmidminer.py -a 10000 -b 10000 --taxa "Escherichia coli" --readsim -N 10000 --save dat/dataset.bin
+```
+
+### Step: 2: optimize hyperparameters
+
+- *Input: Binary object from Step 1 and 2*
+- *Output: optimized hyperparameters, ROC*curve, model created from training sample
+
+First we use a smaller subset of the in Step 1 downloaded data. For this we use the resample script
+
+```
+python plasmidminer/resample.py --data_folder dat --output dat_small -c 150 -s -N 500
+```
+
+We now build a model using this small subset of the data as train set.
+
+```
+python plasmidminer/findparameters.py --dataset dat_small -r 90 -t 50 -i 200 --sobol
+```
+
+This script will try 200 parameters for each model based on sobol randomness whenever possible and exports the best hyperparameter setting for each model to the `cv/` folder. In this example we see that randomforest with an accuracy of 0.81 outperforms all other tested methods. 
+
+### Step 3: draw a ROC curve 
+
+We can draw a ROC curve to visualize performance. You may want to draw a new random subset instead of using the same data we used for training before.
+
+```
+# move parameter setting file to different folder
+mkdir best_parameters && mv cv/*_param_* best_parameters/
+
+# draw ROC using all pickl model files located in cv/
+python plasmidminer/roc.py --model_folder cv --data_folder dat_small --cv 3
+```
+
+### Step 3: train input data with optimized hyperparameter setting
+
+- *Input: pkl object with best hyperparamters and feature file*
+- *Output: final model*
+
+We can now use the corresponding pkl file with contains the hyperparameter settings to train a new model with more features as used for the optimization process. For this we first have to resample more reads from our data (in this we resample 100k instances)
+
+```
+python plasmidminer/resample.py -data_folder dat --output dat_big --readsim -N 100000 -c 150 --save dat/dataset_resampled_big.bin
+```
+
+with this bigger dataset and our pikl object containing the parameters we can now build our final model
+
+```
+python plasmidminer/train.py --data_folder dat_big --method cv/best_model.pkl
+```
+
+# Basic usage
+
+## Scripts for plasmid prediction
+### find plasmids in sequences
+```
+usage: predict.py [-h] [-i INPUT] [-m MODEL] [-s] [-p] [--sliding]
+                  [--window WINDOW] [--version]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -18,33 +84,23 @@ optional arguments:
                         Path to model (.pkl)
   -s, --split           split data based on prediction
   -p, --probability     add probability information to fasta header
+  --sliding             Predict on sliding window
+  --window WINDOW       size of sliding window
   --version             show program's version number and exit
 ```
 
-i.e. to split input.fasta bases on plasmid prediction use:
-
+## Script or training and validation
+### download training samples 
 ```
-python plasmidminer/predict.py --input input.fasta --model model.pkl --split --probability
-```
-
-if the `--split` command is added, this will create two fasta files `input.fasta.plasmids` and `input.fasta.chromosomes`
-
-## prediction of plasmid probablility within a genome
-
-you can use the sliding window approach `python plasmidminer/predict.py --sliding --window 200 -i input.fasta` to generate the plasmid probability plot for a input FASTA file
-
-![alt text](chr.png "plasmid probability")
-
-## generation of datasets
-
-this script downloads the train/test dataset from ncbi and creates various models
-
-```
-usage: plasmidminer.py [-h] [-t TAXA] [-a PLANUM] [-b CHRNUM] [-c CHUNKSIZE]
-                       [-e EMAIL] [--version]
+usage: getdataset.py [-h] [--save SAVE] [--output DATA] [-t TAXA] [-a PLANUM]
+                     [-b CHRNUM] [-c CHUNKSIZE] [-s] [-N SIMNUM] [-e EMAIL]
+                     [--multi] [--no_download] [--screen] [--version]
 
 optional arguments:
   -h, --help            show this help message and exit
+  --save SAVE           Save dataset as msg pack object
+  --output DATA         path to output folder for raw data without tailing
+                        backslash
   -t TAXA, --taxa TAXA  Taxonomic name for downloaded samples
   -a PLANUM, --planum PLANUM
                         Number of plasmids to be downloaded
@@ -52,59 +108,96 @@ optional arguments:
                         Number of chromosomes to be downloaded
   -c CHUNKSIZE, --chunksize CHUNKSIZE
                         Chunk size in nt
+  -s, --readsim         use read simluation based on wgsim instead of sliding
+                        window
+  -N SIMNUM, --simnum SIMNUM
+                        number of reads to simulate with wgsim
   -e EMAIL, --email EMAIL
                         Email adress needed for ncbi file download
+  --multi               Prepare data in multi feature format (taxonomic column
+                        in train/test samples)
+  --no_download         use dataset stored in data folder
+  --screen              Screen downloaded chr for plasmid specific domains and
+                        remove them
   --version             show program's version number and exit
-
 ```
 
-
-## train
-`train.py` will optimize hyperparameters and output the best model fittet on a random subset with the size `--random_size` of the data. During the optimization process it will use roc_auc as validation using cross validation specified using `--iterations` and `--cv`. The best model for each classifier will be saved to `cv/` folder with the model accuracy e.g. `cv/rvc_0.654237288136.pkl` is the model with accuracy of 65%.
-
-![alt text](index.png "ROC")
-
+### generate a new set of samples from training samples
 ```
-usage: train.py [-h] [-t TEST_SIZE] [-r RANDOM_SIZE] [-i ITER] [-c CV] [--lhs]
-                [--roc] [--balance] [--sobol] [--sobol_num SOBOL_NUM]
-                [--version]
+usage: resample.py [-h] [--data_folder DATA_FOLDER] [--output DATA]
+                   [--save SAVE] [-c CHUNKSIZE] [-s] [-N SIMNUM] [--version]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -t TEST_SIZE, --test_size TEST_SIZE
-                        size of test set from whole dataset in percent
-  -r RANDOM_SIZE, --random_size RANDOM_SIZE
-                        size of balanced random subset of data in percent
-  -i ITER, --iterations ITER
-                        number of random iterationsfor hyperparameter
-                        optimization
-  -c CV, --cv CV        cross validation size (e.g. 10 for 10-fold cross
-                        validation)
-  --lhs                 optimize parameters
-  --roc                 plot ROC curve
-  --balance             balance dataset
-  --sobol               use sobol sequence for random search
-  --sobol_num SOBOL_NUM
-                        number of sequence instances in sobol sequence
+  --data_folder DATA_FOLDER
+                        Input data folder which should be processed without
+                        tailing backslash
+  --output DATA         output data folder without tailing backslash
+  --save SAVE           Save dataset as msg pack object
+  -c CHUNKSIZE, --chunksize CHUNKSIZE
+                        Chunk size in nt
+  -s, --readsim         use read simluation based on wgsim instead of sliding
+                        window
+  -N SIMNUM, --simnum SIMNUM
+                        number of reads to simulate with wgsim
   --version             show program's version number and exit
 ```
 
-For example to use sobol sequence or optimization (please use plasmidminer.py first to download the dataset):
-`python plasmidminer/train.py --balance --sobol --sobol_num 10 --roc`
+### hyperparameter optimization
+```
+usage: findparameters.py [-h] [-d DATASET] [-t TEST_SIZE] [-i ITER] [--sobol]
+                         [--version]
 
-## install
-you may want use virtualenv:
+optional arguments:
+  -h, --help            show this help message and exit
+  -d DATASET, --dataset DATASET
+                        path to dataset .pkl object
+  -t TEST_SIZE, --test_size TEST_SIZE
+                        size of test set
+  -i ITER, --iterations ITER
+                        number of random iterationsfor hyperparameter
+                        optimization
+  --sobol               use sobol sequence for random search
+  --version             show program's version number and exit
+```
 
-`virtualenv env`
-`source env/bin/activate`
+### draw ROC curve
+```
+usage: roc.py [-h] [-m MODEL] [-d DATA] [-t TEST_SIZE] [-c CV] [--version]
 
-to install plasmidminer just type: `python setup.py install`
+optional arguments:
+  -h, --help            show this help message and exit
+  -m MODEL, --model_folder MODEL
+                        path to folder where .pkl models are located
+  -d DATA, --data_folder DATA
+                        path to file foulder
+  -t TEST_SIZE, --test_size TEST_SIZE
+                        size of test set from whole dataset in percent
+  -c CV, --cv CV        cross validation size (e.g. 10 for 10-fold cross
+                        validation)
+  --version             show program's version number and exit
+```
 
-tested with python 2.7.12
+# Installation
 
+make sure you have installed the dependencies
 
-`sudo apt-get install libmysqlclient-dev libpq-dev libboost-all-dev`
+`ibmysqlclient-dev libpq-dev libboost-all-dev`
 
-### train
-`python plasmidminer/plasmidminer`
+and binaries of `hmmer` and `prodigal` in your `PATH` variable
 
+Installation workflow with virtualenv:
+
+```
+virtualenv env
+source env/bin/activate
+git clone https://github.com/philippmuench/plasmidminer.git
+cd plasmidminer
+python setup.py install
+```
+
+# Citing
+
+```
+$bibtex item
+```
