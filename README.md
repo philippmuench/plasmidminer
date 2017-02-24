@@ -3,16 +3,16 @@ A method for the *in silico* detection of plasmid fragments in environmental sam
 manuscript draft: https://www.overleaf.com/7758191crzmzwwcxftk
 
 ### Table of Contents
-[Worklow](#building-a-model)
-[Basic usage](#basic-usage)
-[Installation](#installation)
-[Citing](#citing)
+[Worklow](#building-a-model)  
+[Basic usage](#basic-usage)  
+[Installation](#installation)  
+[Citing](#citing)  
 
 # Building a model
 ### Step 1: download *E. Coli* learning data
 
-- *Input: command line parameters*
-- *Output: raw dataset, csv feature matrix and binary object for learning task*
+- **Input:** command line parameters
+- **Output:** raw dataset, csv feature matrix and binary object for learning task
 
 We download all E. Coli complete genomes and plasmids from NCBI and randomly sample 10000 reads with the size of 150 nt from both datasets. These randomly sampled reads are even distributed from all genomes in the collection.
 
@@ -22,26 +22,35 @@ python plasmidminer/plasmidminer.py -a 10000 -b 10000 --taxa "Escherichia coli" 
 
 ### Step: 2: optimize hyperparameters
 
-- *Input: Binary object from Step 1 and 2*
-- *Output: optimized hyperparameters, ROC*curve, model created from training sample
+- **Input:** raw data from Step 1
+- **Output:** optimized hyperparameters, model created from training sample for `roc.py` script
 
-First we use a smaller subset of the in Step 1 downloaded data. For this we use the resample script
+First we have to create a smaller subset of features from the downloaded data.
 
 ```
 python plasmidminer/resample.py --data_folder dat --output dat_small -c 150 -s -N 500
 ```
 
-We now build a model using this small subset of the data as train set.
+We can now find the best parameters for various models using this small subset of the data as train set.
 
 ```
 python plasmidminer/findparameters.py --dataset dat_small -r 90 -t 50 -i 200 --sobol
 ```
 
-This script will try 200 parameters for each model based on sobol randomness whenever possible and exports the best hyperparameter setting for each model to the `cv/` folder. In this example we see that randomforest with an accuracy of 0.81 outperforms all other tested methods. 
+This script will try 200 parameters for each model based on sobol number whenever possible and exports the best hyperparameter setting for each model to the `cv/` folder. In this example we see that randomforest with an accuracy of 0.81 outperforms all other tested methods. 
+
+Currently implementated methods:
+- Support Vector Machine 
+- Relevance vector machine
+- Random Forest
+- Gradient Boosting Classifier
 
 ### Step 3: draw a ROC curve 
 
-We can draw a ROC curve to visualize performance. You may want to draw a new random subset instead of using the same data we used for training before.
+- **Input:** Folder where pickl objects with trained models are located
+- **Output:** ROC curve, AUC values
+
+We can draw a ROC curve to visualize classification performance. You may want to draw a new random subset instead of using the same data we used for training before.
 
 ```
 # move parameter setting file to different folder
@@ -53,8 +62,8 @@ python plasmidminer/roc.py --model_folder cv --data_folder dat_small --cv 3
 
 ### Step 3: train input data with optimized hyperparameter setting
 
-- *Input: pkl object with best hyperparamters and feature file*
-- *Output: final model*
+- **Input:** pkl object with best hyperparamters and feature file
+- **Output:** final model
 
 We can now use the corresponding pkl file with contains the hyperparameter settings to train a new model with more features as used for the optimization process. For this we first have to resample more reads from our data (in this we resample 100k instances)
 
@@ -62,7 +71,7 @@ We can now use the corresponding pkl file with contains the hyperparameter setti
 python plasmidminer/resample.py -data_folder dat --output dat_big --readsim -N 100000 -c 150 --save dat/dataset_resampled_big.bin
 ```
 
-with this bigger dataset and our pikl object containing the parameters we can now build our final model
+With this bigger dataset and our pikl object containing the parameters we can now build our final model
 
 ```
 python plasmidminer/train.py --data_folder dat_big --method cv/best_model.pkl
@@ -71,7 +80,7 @@ python plasmidminer/train.py --data_folder dat_big --method cv/best_model.pkl
 # Basic usage
 
 ## Scripts for plasmid prediction
-### find plasmids in sequences
+### Detection of plasmids from FASTA files
 ```
 usage: predict.py [-h] [-i INPUT] [-m MODEL] [-s] [-p] [--sliding]
                   [--window WINDOW] [--version]
@@ -89,8 +98,8 @@ optional arguments:
   --version             show program's version number and exit
 ```
 
-## Script or training and validation
-### download training samples 
+## Scripts for training and validation
+### Download training samples 
 ```
 usage: getdataset.py [-h] [--save SAVE] [--output DATA] [-t TAXA] [-a PLANUM]
                      [-b CHRNUM] [-c CHUNKSIZE] [-s] [-N SIMNUM] [-e EMAIL]
@@ -122,7 +131,7 @@ optional arguments:
   --version             show program's version number and exit
 ```
 
-### generate a new set of samples from training samples
+### Generate a new set of training samples from raw data
 ```
 usage: resample.py [-h] [--data_folder DATA_FOLDER] [--output DATA]
                    [--save SAVE] [-c CHUNKSIZE] [-s] [-N SIMNUM] [--version]
@@ -143,7 +152,7 @@ optional arguments:
   --version             show program's version number and exit
 ```
 
-### hyperparameter optimization
+### Hyperparameter optimization
 ```
 usage: findparameters.py [-h] [-d DATASET] [-t TEST_SIZE] [-i ITER] [--sobol]
                          [--version]
@@ -161,7 +170,7 @@ optional arguments:
   --version             show program's version number and exit
 ```
 
-### draw ROC curve
+### ROC Curve
 ```
 usage: roc.py [-h] [-m MODEL] [-d DATA] [-t TEST_SIZE] [-c CV] [--version]
 
