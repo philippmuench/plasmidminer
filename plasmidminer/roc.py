@@ -8,6 +8,8 @@ import argparse
 import findparameters
 from termcolor import colored
 import gzip
+import matplotlib.pyplot as plt
+from sklearn import metrics
 from sklearn.externals import joblib
 from sklearn.model_selection import cross_val_score, train_test_split
 
@@ -41,8 +43,8 @@ def drawroc(clf, clf_labels, X_train, y_train, X_test, y_test):
 		print("ROC AUC: %0.2f (+/- %0.2f) [%s]" %
 			  (scores.mean(), scores.std(), label))
 		y_pred = clf.fit(X_train, y_train).predict_proba(X_test)[:, 1]
-		fpr, tpr, thresholds = roc_curve(y_true=y_test, y_score=y_pred)
-		roc_auc = auc(x=fpr, y=tpr)
+		fpr, tpr, thresholds = metrics.roc_curve(y_true=y_test, y_score=y_pred)
+		roc_auc = metrics.auc(x=fpr, y=tpr)
 		plt.plot(fpr, tpr, color=clr, linestyle=ls,
 				 label='%s (auc = %0.2f)' % (label, roc_auc))
 	plt.legend(loc='lower right')
