@@ -17,7 +17,7 @@ manuscript draft: https://www.overleaf.com/7758191crzmzwwcxftk
 We download all E. Coli complete genomes and plasmids from NCBI and randomly sample 10000 reads with the size of 150 nt from both datasets. These randomly sampled reads are even distributed from all genomes in the collection.
 
 ```
-python plasmidminer/plasmidminer.py -a 10000 -b 10000 --taxa "Escherichia coli" --readsim -N 10000 --save dat/dataset.bin
+python plasmidminer/getdataset.py -a 10000 -b 10000 --taxa "Escherichia coli" --readsim -N 10000 --save dat/dataset.bin
 ```
 
 ### Step: 2: optimize hyperparameters
