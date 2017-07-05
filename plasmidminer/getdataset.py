@@ -231,12 +231,12 @@ if __name__ == "__main__":
 	sequence_cleaner(str(args.data) + '/chromosome_chunks.fasta.corrected.fasta', args)
 	sequence_cleaner(str(args.data) + '/plasmid_chunks.fasta.corrected.fasta', args)
 	# merge genomes to one file
-	createmerged()
+	createmerged(args)
 	# export features such as GC content
-	getstatfeatures()
+	getstatfeatures(args)
 	# compress fasta file
-	compress()
+	compress(args)
 	# extract kmer content
-	extractkmers()
+	extractkmers(args)
 	# save feature data as msgpack object
 	savemsg(args)
