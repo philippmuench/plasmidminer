@@ -191,7 +191,7 @@ optional arguments:
 
 make sure you have installed the dependencies
 
-`libpq-dev libboost-all-dev libmysqlclient-dev python-dev build-essential libssl-dev libffi-dev `
+`libpq-dev libboost-all-dev libmysqlclient-dev python-dev build-essential libssl-dev libffi-dev python-tk`
 
 on some systems `libboost-all-dev` cannot be installed via apt-get install, so you can install it directly
 
@@ -210,6 +210,7 @@ source env/bin/activate
 git clone https://github.com/philippmuench/plasmidminer.git
 cd plasmidminer
 pip install numpy cython pysam
+pip install https://github.com/AmazaspShumik/sklearn_bayes/archive/master.zip
 pip install -r requirements.txt
 python setup.py install
 ```
