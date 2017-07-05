@@ -191,7 +191,14 @@ optional arguments:
 
 make sure you have installed the dependencies
 
-`ibmysqlclient-dev libpq-dev libboost-all-dev`
+`libpq-dev libboost-all-dev libmysqlclient-dev python-dev build-essential libssl-dev libffi-dev `
+
+on some systems `libboost-all-dev` cannot be installed via apt-get install, so you can install it directly
+
+```
+wget http://launchpadlibrarian.net/153613169/libboost1.54-dev_1.54.0-2ubuntu3_amd64.deb
+sudo dpkg -i --force-overwrite libboost1.54-dev_1.54.0-2ubuntu3_amd64.deb
+```
 
 and binaries of `hmmer` and `prodigal` in your `PATH` variable
 
@@ -202,6 +209,8 @@ virtualenv env
 source env/bin/activate
 git clone https://github.com/philippmuench/plasmidminer.git
 cd plasmidminer
+pip install numpy cython pysam
+pip install -r requirements.txt
 python setup.py install
 ```
 
