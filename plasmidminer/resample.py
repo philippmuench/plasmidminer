@@ -2,18 +2,20 @@
 # resample fragments from raw input data
 # philipp.muench@helmholtz-hzi.de
 
-import os, csv, sys
+import os
 import getdataset
 import argparse
-import shutil, errno
+import shutil
+import errno
+
 
 def copyanything(src, dst):
-	try:
-		shutil.copytree(src, dst)
-	except OSError as exc: # python >2.5
-		if exc.errno == errno.ENOTDIR:
-			shutil.copy(src, dst)
-		else: raise
+    try:
+        shutil.copytree(src, dst)
+    except OSError as exc:  # python >2.5
+        if exc.errno == errno.ENOTDIR:
+            shutil.copy(src, dst)
+        else: raise
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
@@ -28,10 +30,9 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 
 	# copy raw data to new dir
-	if not os.path.exists(str(args.data)):
-		os.makedirs(str(args.data))
-	copyanything(str(args.data_folder) + '/chr', str(args.data) + '/chr')
-	copyanything(str(args.data_folder) + '/pla', str(args.data) + '/pla')
+	#if not os.path.exists(str(args.data)):
+	#	os.makedirs(str(args.data))
+	copyanything(str(args.data_folder), str(args.data))
 
 	# split data into small read sized subset using sliding window approach
 	getdataset.getchunks(args)
