@@ -273,7 +273,7 @@ def showinput(X,string):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-d', '--dataset', action='store', dest='dataset',
-						help='path to dataset .pkl object', default='dat/dataset.pkl')
+						help='path to data folder', default='dat')
 	parser.add_argument('-t', '--test_size', action='store', dest='test_size',
 						help='size of test set from whole dataset in percent', default=30)
 	parser.add_argument('-r', '--random_size', action='store', dest='random_size',
@@ -293,7 +293,7 @@ if __name__ == "__main__":
 	# load data from msgpack object
 #	X, y = loaddataset(args.dataset)
 
-	X, y = creatematrix('dat/train.features.clear2.csv','dat/train.features.kmer', args)
+	X, y = creatematrix(args.dataset + '/train.features.clear2.csv', args.dataset +'/train.features.kmer', args)
 
 	# print input data
 	showinput(X, 'imported data')
