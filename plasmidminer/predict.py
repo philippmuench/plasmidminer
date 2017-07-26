@@ -6,6 +6,7 @@ from termcolor import colored
 import cPickle
 import pandas as pd
 import numpy as np
+import tempfile
 from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.base import BaseEstimator
@@ -14,6 +15,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.externals import six
 from sklearn.base import clone
 from sklearn.pipeline import _name_estimators
+from sklearn.externals import joblib
 try:
     from Bio import Entrez
     from Bio import SeqIO
@@ -141,24 +143,23 @@ class Printer():
 
 def getstatfeatures(args):
     """export statistical properties of fasta files as features"""
-    Printer(colored('(processing) ', 'green') + 'generte feature matrix')
+    Printer(colored('(processing) ', 'green') + 'generate feature matrix')
     s = " "
-    cmd = ("python plasmidminer/features.py -I ", str(args.input), "-s length -s na -s cpg > dat/input.features")
+    cmd = ("python plasmidminer/features.py -I ", str(args.input), "-s length -s na -s cpg > dat_tmp/input.features")
     os.system(s.join( cmd ))
-
     Printer(colored('(processing) ', 'green') + 'export csv')
-    with open("dat/input.features", "r") as inp, open("dat/input.features.csv", "w") as out:
+    with open("dat_tmp/input.features", "r") as inp, open("dat_tmp/input.features.csv", "w") as out:
         w = csv.writer(out, delimiter=",")
         w.writerows(x for x in csv.reader(inp, delimiter="\t"))
-    features.clearit("dat/input.features.csv", "dat/input.features.clear.csv")
-    os.system("tail -n +2 dat/input.features.clear.csv > dat/input.features.clear2.csv")
+    features.clearit("dat_tmp/input.features.csv", "dat_tmp/input.features.clear.csv")
+    os.system("tail -n +2 dat_tmp/input.features.clear.csv > dat_tmp/input.features.clear2.csv")
 
 def extractkmers(args):
     Printer(colored('(processing) ', 'green') + 'extract kmer profile')
     s = " "
-    cmd = ("src/fasta2kmers2 -i ", str(args.input), "-f dat/input.features.kmer -j 4 -k 6 -s 0 -n 1")
+    cmd = ("src/fasta2kmers2 -i ", str(args.input), "-f dat_tmp/input.features.kmer -j 4 -k 6 -s 0 -n 1")
     os.system(s.join( cmd ))
-    with open("dat/input.features.kmer", "r") as inp, open("dat/input.features.kmer.csv", "w") as out:
+    with open("dat_tmp/input.features.kmer", "r") as inp, open("dat_tmp/input.features.kmer.csv", "w") as out:
         w = csv.writer(out, delimiter=",")
         w.writerows(x for x in csv.reader(inp, delimiter="\t"))
 
@@ -178,12 +179,12 @@ def sepseq(fasta_file, predictions, probabilities, args):
         sequence = str(seq_record.seq).upper()
         if (predictions[i] == 1):
             if (args.probability):
-                plasmid_sequences[sequence] = seq_record.description +  str(probabilities[i])
+                plasmid_sequences[sequence] = seq_record.description + "-" + str(probabilities[i])
             else:
                 plasmid_sequences[sequence] = seq_record.description 
         else:
             if (args.probability):
-                chromsom_sequences[sequence] = seq_record.description +  str(probabilities[i])
+                chromsom_sequences[sequence] = seq_record.description + "-" +  str(probabilities[i])
             else:
                 chromsom_sequences[sequence] = seq_record.description
         i += 1
@@ -197,14 +198,26 @@ def sepseq(fasta_file, predictions, probabilities, args):
     for sequence in chromsom_sequences:
         output_file.write(">" + chromsom_sequences[sequence] + "\n" + sequence + "\n")
     output_file.close()
+    return plasmid_sequences, chromsom_sequences
 
 def slidewindowfragments(args):
     """Generate sliding window fragments from fasta file"""
-    with open('dat/window_fragments.fasta',"w") as f:
+    with open('dat_tmp/window_fragments.fasta',"w") as f:
         for seq_record in SeqIO.parse(args.input, "fasta"):
             for i in range(len(seq_record.seq) - int(args.window) - 1) :
                f.write(str(">" + seq_record.id) + "\n")
                f.write(str(seq_record.seq[i:i + int(args.window)]) + "\n")  #first 5 base positions
+
+def showresults(args, plasmid_sequences, chromsom_sequences):
+	"""outputs basic statistics of input files"""
+	print('\n-------------------------------------------------------------')
+	print len(plasmid_sequences), "\t plasmid reads found"
+	print len(chromsom_sequences), "\t chromosome reads found"
+	print "chromosome fasta file:\t", args.input+".chromosomes"
+	print "plasmid fasta file:\t", args.input+".plasmids"
+	print "probability file:\t", "probabilities.txt"
+	print "prediction file:\t", "predictions.txt"
+	print('-------------------------------------------------------------\n')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -216,32 +229,36 @@ if __name__ == "__main__":
     parser.add_argument('--window', action='store', dest='window', help='size of sliding window', default='100')
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
+    #if (args.sliding):
+    #    print('sliding window')
+    #    slidewindowfragments(args)
+    #    args.input = 'dat/window_fragments.fasta'
 
-    if (args.sliding):
-        print('sliding window')
-        slidewindowfragments(args)
-        args.input = 'dat/window_fragments.fasta'
-
-    getstatfeatures(args)   
+    getstatfeatures(args)
     extractkmers(args)
-    print('create matrix')
-    dat = createpredictmatrix('dat/input.features.clear2.csv', 'dat/input.features.kmer')
+    Printer(colored('(preprocessing) ', 'green') + 'create matrix')
+    dat = createpredictmatrix('dat_tmp/input.features.clear2.csv', 'dat_tmp/input.features.kmer')
     X = dat.drop(dat.columns[[0]], 1) # remove label
-    with open(args.model, 'rb') as fid:
-        pipe = cPickle.load(fid)
-    print('classifier loaded')
+    Printer(colored('(preprocessing) ', 'green') + 'import model')
+    with open(args.model, 'rb') as pkl_source:
+        pipe = joblib.load(pkl_source)
     label = {0:'chromosomal', 1:'plasmid'}
+    Printer(colored('(running) ', 'green') + 'save predictions to file')
     predictions = pipe.predict(X)
+    np.savetxt('predictions.txt', predictions)
     if (args.sliding):
+    	Printer(colored('(running) ', 'green') + 'make prediction within sliding window')
         probabilities = pipe.predict_proba(X)[:,1]# probability that this is a plasmid
     else:
+    	Printer(colored('(running) ', 'green') + 'predict input fasta file')
         probabilities = np.amax(pipe.predict_proba(X), axis=1) # max probability over two classes
+        np.savetxt('probabilities.txt', probabilities)
     if (args.split):
-        Printer(colored('(predict) ', 'green') + 'generate FASTA files')
-        sepseq('dat/input.fasta', predictions, probabilities, args)
-        Printer(colored('(predict) ', 'green') + 'finished')
+    	Printer(colored('(running) ', 'green') + 'generate fasta files')
+        plasmid_sequences, chromsom_sequences = sepseq(args.input, predictions, probabilities, args)
+        Printer(colored('(running) ', 'green') + 'finished')
+    showresults(args, plasmid_sequences, chromsom_sequences)
 
 #   for index, row in X.iterrows():
 #       print('Prediction: %s\nProbability: %.2f%%' %\
 #           (label[pipe.predict(X)[index]], pipe.predict_proba(X)[index].max()*100))
-
