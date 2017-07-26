@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import cPickle
 import pickle
 import scipy
+import collections
 from scipy import stats
 import argparse
 from scipy.stats import expon
@@ -48,8 +49,7 @@ def creatematrix(features, kmer, args):
 	id2 = stat.id.str.split("-", expand=True)  # split the string to get label
 	id2 = id2.iloc[:, :-1]
 	stat2 = stat.iloc[:, 1:]
-	df = pd.concat([stat2.reset_index(drop=True), kmer],
-				   axis=1)  # concat kmerand stat matrix
+	df = pd.concat([stat2.reset_index(drop=True), kmer],axis=1)  # concat kmerand stat matrix
 	df = pd.concat([id2, df], axis=1)
 	df.columns.values[0] = "label"
 	# encoding class labels as integers
@@ -102,7 +102,7 @@ def drawroc(clf, clf_labels, X_train, y_train, X_test, y_test):
 	plt.savefig('roc.png', dpi=300)
 	plt.show()
 
-def balanced_subsample(x, y, subsample_size=1.0):
+def balanced_subsample(x, y, subsample_size=1):
 	"""Balances the dataset in  a 1:1 fashion"""
 	class_xs = []
 	min_elems = None
@@ -262,22 +262,19 @@ def build_gbc(X, y, args):
 	saveparams(random_search.best_params_, filename_param)
 	return random_search, acc
 
-def showinput(X,string):
+def showinput(X,y,string):
 	"""outputs basic statistics of input files"""
 	print('\n-------------------------------------------------------------')
 	print(str(string))
 	print "number of instances:\t", X.shape[0]
 	print "number of features:\t", X.shape[1]
+	print "response:\t", collections.Counter(y)
 	print('-------------------------------------------------------------\n')
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-d', '--dataset', action='store', dest='dataset',
 						help='path to data folder', default='dat')
-	parser.add_argument('-t', '--test_size', action='store', dest='test_size',
-						help='size of test set from whole dataset in percent', default=30)
-	parser.add_argument('-r', '--random_size', action='store', dest='random_size',
-						help='size of balanced random subset of data in percent', default=10)
 	parser.add_argument('-i', '--iterations', action='store', dest='iter',
 						help='number of random iterationsfor hyperparameter optimization', default=5)
 	parser.add_argument('-c', '--cv', action='store', dest='cv',
@@ -296,20 +293,22 @@ if __name__ == "__main__":
 	X, y = creatematrix(args.dataset + '/train.features.clear2.csv', args.dataset +'/train.features.kmer', args)
 
 	# print input data
-	showinput(X, 'imported data')
+	showinput(X, y, 'imported data')
 
 	# generate a random subset
-	Printer(colored('(preprocessing) ', 'green') + 'generate a random subset')
-	X_sub, y_sub = balanced_subsample(X, y, subsample_size=int(args.random_size))
+	Printer(colored('(preprocessing) ', 'green') + 'generate a random balanced subset')
 
+	X_sub, y_sub = balanced_subsample(X, y)
 
 	# split train/testset
 	Printer(colored('(preprocessing) ', 'green') + 'generate train/test set')
-	X_train, X_test, y_train, y_test = train_test_split(X_sub, y_sub, test_size=int(args.test_size))
+	X_train, X_test, y_train, y_test = train_test_split(X_sub, y_sub, test_size=0.2)
 
 	# print input data
-	showinput(X_train, 'training data')
+	showinput(X_train, y_train, 'training data')
 
+	# print input data
+	showinput(X_test, y_test, 'testing data')
 
 	# create output folder
 	if not os.path.exists('cv'):
