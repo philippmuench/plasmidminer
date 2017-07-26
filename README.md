@@ -1,10 +1,10 @@
 A method for the *in silico* detection of plasmid fragments in environmental samples
-Deep learning - LSTM version available at https://github.com/philippmuench/dna_lstm
 
-manuscript draft: https://www.overleaf.com/7758191crzmzwwcxftk
+- Deep learning - LSTM version available at https://github.com/philippmuench/dna_lstm
+- Manuscript draft: https://www.overleaf.com/7758191crzmzwwcxftk
 
 ### Table of Contents
-[Prediction](#Prediction)  
+[Prediction](#prediction)  
 [Full Worklow](#building-a-model)  
 [Basic usage](#basic-usage)  
 [Installation](#installation)  
@@ -12,7 +12,7 @@ manuscript draft: https://www.overleaf.com/7758191crzmzwwcxftk
 
 # Prediction
 
-If you just want to predict your input sequences, your can use our pre-builded model `model.pckl`
+If you just want to predict your input sequences, your can use our pre-builded model `model.pkl`. This model was trained on CAMI dataset. 
 
 ```
 python plasmidminer/predict.py -i you_file.fasta -m model.pkl -h -s -p
@@ -20,6 +20,18 @@ python plasmidminer/predict.py -i you_file.fasta -m model.pkl -h -s -p
 
 ![Alt Text](demo.gif)
 
+example output:
+
+```
+-------------------------------------------------------------
+7 	 plasmid reads found
+29 	 chromosome reads found
+chromosome fasta file:	chr_full.fasta.chromosomes
+plasmid fasta file:	chr_full.fasta.plasmids
+probability file:	probabilities.txt
+prediction file:	predictions.txt
+-------------------------------------------------------------
+```
 
 # Building a model
 ### Step 1a: download learning data from NCBI
