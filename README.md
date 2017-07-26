@@ -1,12 +1,25 @@
 A method for the *in silico* detection of plasmid fragments in environmental samples
+Deep learning - LSTM version available at https://github.com/philippmuench/dna_lstm
 
 manuscript draft: https://www.overleaf.com/7758191crzmzwwcxftk
 
 ### Table of Contents
-[Worklow](#building-a-model)  
+[Prediction](#Prediction)  
+[Full Worklow](#building-a-model)  
 [Basic usage](#basic-usage)  
 [Installation](#installation)  
 [Citing](#citing)  
+
+# Prediction
+
+If you just want to predict your input sequences, your can use our pre-builded model `model.pckl`
+
+```
+python plasmidminer/predict.py -i you_file.fasta -m model.pkl -h -s -p
+```
+
+![Alt Text](demo.gif)
+
 
 # Building a model
 ### Step 1a: download learning data from NCBI
@@ -54,7 +67,7 @@ python plasmidminer/resample.py --data_folder dat --output dat_small -c 150 -s -
 We can now find the best parameters for various models using this small subset of the data as train set.
 
 ```
-python plasmidminer/findparameters.py --dataset dat_small -r 90 -t 50 -i 200 --sobol
+python plasmidminer/findparameters.py --dataset dat_small -i 200 --sobol
 ```
 
 This script will try 200 parameters for each model based on sobol number whenever possible and exports the best hyperparameter setting for each model to the `cv/` folder. In this example we see that randomforest with an accuracy of 0.81 outperforms all other tested methods. 
