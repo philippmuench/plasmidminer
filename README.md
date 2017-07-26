@@ -9,7 +9,7 @@ manuscript draft: https://www.overleaf.com/7758191crzmzwwcxftk
 [Citing](#citing)  
 
 # Building a model
-### Step 1: download *E. Coli* learning data
+### Step 1a: download learning data from NCBI
 
 - **Input:** command line parameters
 - **Output:** raw dataset, csv feature matrix and binary object for learning task
@@ -18,6 +18,26 @@ We download all E. Coli complete genomes and plasmids from NCBI and randomly sam
 
 ```
 python plasmidminer/getdataset.py -a 10000 -b 10000 --taxa "Escherichia coli" --readsim -N 10000 --save dat/dataset.bin
+```
+
+### Step 1b: use personal genome collection (in this case from CAMI project)
+
+- **Input:** command line parameters, `plasmid.fasta` and `chromosme.fasta` located in `dat/` folder (downloaded from CAMI website)
+- **Output:** raw dataset, csv feature matrix and binary object for learning task
+
+preprocessing:
+```
+wget https://s3-eu-west-1.amazonaws.com/cami-data-eu/CAMI_low/source_genomes_low.tar.gz
+tar xvzf source_genomes_low.tar.gz
+rename "s/fna/fasta/" *.fna
+renam "s/fna/fasta/" circular_one_repeat/*.fna
+cat *.fasta > chromosomes.fasta
+cat circular_one_repeat/*.fasta > plasmid.fasta
+# move plasmid.fasta and chromosomes.fasta to dat folder
+```
+
+```
+python plasmidminer/getdataset.py --no_download --readsim -N 10000 --save dat/dataset.bin
 ```
 
 ### Step: 2: optimize hyperparameters
