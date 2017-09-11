@@ -1,10 +1,9 @@
 #!/usr/bin/python
-# plot ROC cures from a bunch of pkl objecs where models are stored
+# script to compare model performances
 # philipp.muench@helmholtz-hzi.de
 
 import os, glob, sys
 import argparse
-#import cPickle
 import findparameters
 from termcolor import colored
 import gzip
@@ -18,7 +17,6 @@ class Printer():
 	def __init__(self,data):
 		sys.stdout.write("\r\x1b[K"+data.__str__())
 		sys.stdout.flush()
-
 def showinfo(args):
 	"""outputs basic info about input files"""
 	Printer(colored('(processing) ', 'green') + 'listing input file')
@@ -40,8 +38,8 @@ def drawroc(clf, clf_labels, X_train, y_train, X_test, y_test):
 			in zip(clf, clf_labels, colors, linestyles):
 		scores = cross_val_score(estimator=clf, X=X_train, y=y_train, cv=int(
 			args.cv), scoring='roc_auc', n_jobs=-1)
-		print("ROC AUC: %0.2f (+/- %0.2f) [%s]" %
-			  (scores.mean(), scores.std(), label))
+		#print("ROC AUC: %0.2f (+/- %0.2f) [%s]" %
+		#	  (scores.mean(), scores.std(), label))
 		y_pred = clf.fit(X_train, y_train).predict_proba(X_test)[:, 1]
 		fpr, tpr, thresholds = metrics.roc_curve(y_true=y_test, y_score=y_pred)
 		roc_auc = metrics.auc(x=fpr, y=tpr)
@@ -54,9 +52,10 @@ def drawroc(clf, clf_labels, X_train, y_train, X_test, y_test):
 	plt.grid()
 	plt.xlabel('False Positive Rate')
 	plt.ylabel('True Positive Rate')
+	filename = 'roc_all.png'
 	# plt.tight_layout()
-	plt.savefig('roc.png', dpi=300)
-	plt.show()
+	plt.savefig(filename, dpi=300)
+	plt.close()
 
 def loadmodels(modellist, args):
 	"""iterates over pkl files in foulder and loads pkl objects"""
@@ -74,6 +73,7 @@ def loadmodels(modellist, args):
 			clf.append(joblib.load(fid))
 	return clf, clf_labels
 
+
 def showinfoclf(clf, clf_labels):
 	"""outputs basic info about input files"""
 	Printer(colored('(processing) ', 'green') + 'listing cls')
@@ -89,7 +89,7 @@ if __name__ == "__main__":
 	parser.add_argument('-d', '--data_folder', action='store', dest='data',
 						help='path to file foulder', default='dat')
 	parser.add_argument('-t', '--test_size', action='store', dest='test_size',
-						help='size of test set from whole dataset in percent', default=30)
+						help='size of test set from whole dataset in percent', default=0.33)
 	parser.add_argument('-c', '--cv', action='store', dest='cv',
 						help='cross validation size (e.g. 10 for 10-fold cross validation)', default=3)
 	parser.add_argument('--version', action='version', version='%(prog)s 0.1')
@@ -99,14 +99,23 @@ if __name__ == "__main__":
 	modellist = showinfo(args)
 	clf, clf_labels = loadmodels(modellist, args)
 
+	# print model information to screen
 	showinfoclf(clf, clf_labels)
 
 	# import samples
 	X, y = findparameters.creatematrix(str(args.data) + '/train.features.clear2.csv', str(args.data) + '/train.features.kmer', args)
 
-	# split train/testset
-	Printer(colored('(preprocessing) ', 'green') + 'generate train/test set')
-	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=int(args.test_size))
+	# generate subsample with equal amount of pos/neg instances
+	X_sub, y_sub = findparameters.balanced_subsample(X, y)
 
+	# split train/testset
+	#Printer(colored('(preprocessing) ', 'green') + 'generate train/test set')
+	X_train, X_test, y_train, y_test = train_test_split(X_sub, y_sub, test_size=args.test_size)
+
+	# show input data statistics
+ 	findparameters.showinput(X, y, 'raw dataset')
+ 	findparameters.showinput(X_train, y_train, 'train subset')
+ 	findparameters.showinput(X_test, y_test, 'test subset')
+	
 	# get figure
-	drawroc(clf,clf_labels, X_train, y_train, X_test, y_test)
+	drawroc(clf, clf_labels, X_train, y_train, X_test, y_test)
