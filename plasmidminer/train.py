@@ -120,8 +120,8 @@ def drawsingleroc(clf, clf_label, X_train, y_train, X_test, y_test):
 	"""draw a roc curve for each model in clf, save as roc.png"""
 	scores = cross_val_score(estimator=clf, X=X_train, y=y_train, cv=int(
 		args.cv), scoring='roc_auc', n_jobs=-1)
-	print("\nROC AUC: %0.2f (+/- %0.2f) [%s]" %
-		(scores.mean(), scores.std(), clf_label))
+	#print("\nROC AUC: %0.2f (+/- %0.2f) [%s]" %
+#		(scores.mean(), scores.std(), clf_label))
 	y_pred = clf.fit(X_train, y_train).predict_proba(X_test)[:, 1]
 	fpr, tpr, thresholds = metrics.roc_curve(y_true=y_test, y_score=y_pred)
 	roc_auc = metrics.auc(x=fpr, y=tpr)
@@ -144,17 +144,30 @@ def train_randomForest(X, y, X_val, y_val, args, param_dist):
 			'training random forest')
 	clf = RandomForestClassifier(n_estimators = 2000)
 	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
-	scoring = {'accuracy': 'accuracy', 'precision': 'precision', 'recall': 'recall'}
+	scoring = {'accuracy': 'accuracy', 'precision': 'precision', 'recall': 'recall',
+	 'roc_auc' : 'roc_auc', 'average_precision' : 'average_precision', 'f1' : 'f1',
+	 'f1_micro' : 'f1_micro','f1_macro' : 'f1_macro','f1_weighted' : 'f1_weighted'}
 	scores = cross_validate(pipe, X, y, scoring=scoring, cv=3, return_train_score=False)
 	label = 'final model'
 	print(scores)
-	print("\nest_accuracy: %0.2f (+/- %0.2f) [%s]" %
+	print("\ntest_accuracy: %0.2f (+/- %0.2f) [%s]" %
 		(scores["test_accuracy"].mean(), scores["test_accuracy"].std(), label))
-	print("\nrecall: %0.2f (+/- %0.2f) [%s]" %
+	print("test_recall: %0.2f (+/- %0.2f) [%s]" %
 		(scores["test_recall"].mean(), scores["test_recall"].std(), label))
-	print("\nest_recall: %0.2f (+/- %0.2f) [%s]" %
+	print("test_precision: %0.2f (+/- %0.2f) [%s]" %
 		(scores["test_precision"].mean(), scores["test_precision"].std(), label))
-
+	print("test_roc_auc: %0.2f (+/- %0.2f) [%s]" %
+		(scores["test_roc_auc"].mean(), scores["test_roc_auc"].std(), label))
+	print("test_average_precision: %0.2f (+/- %0.2f) [%s]" %
+		(scores["test_average_precision"].mean(), scores["test_average_precision"].std(), label))
+	print("test_f1: %0.2f (+/- %0.2f) [%s]" %
+		(scores["test_f1"].mean(), scores["test_f1"].std(), label))
+	print("test_f1_micro: %0.2f (+/- %0.2f) [%s]" %
+		(scores["test_f1_micro"].mean(), scores["test_f1_micro"].std(), label))
+	print("test_f1_macro: %0.2f (+/- %0.2f) [%s]" %
+		(scores["test_f1_macro"].mean(), scores["test_f1_macro"].std(), label))
+	print("test_f1_weighted: %0.2f (+/- %0.2f) [%s]" %
+		(scores["test_f1_weighted"].mean(), scores["test_f1_weighted"].std(), label))
 	#	y_pred = clf.predict(X_test)
 #	prob_pos = clf.predict_proba(X_test)[:, 1]
 #	print('\n\n-------------------------------------------------------------')
