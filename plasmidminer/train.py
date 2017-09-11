@@ -15,6 +15,8 @@ from sklearn.svm import LinearSVC
 from sklearn.model_selection import learning_curve
 from sklearn.model_selection import ShuffleSplit
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_validate
 try:
 	from sklearn.externals import joblib
 	from sklearn.pipeline import Pipeline
@@ -32,6 +34,7 @@ try:
 	from sklearn.metrics import (brier_score_loss, precision_score, recall_score,
                              f1_score)
 	from sklearn.calibration import CalibratedClassifierCV, calibration_curve
+	from sklearn.model_selection import cross_validate
 except ImportError:
 	print 'This script requires sklearn to be installed!'
 import findparameters
@@ -135,23 +138,33 @@ def drawsingleroc(clf, clf_label, X_train, y_train, X_test, y_test):
 	# plt.tight_layout()
 	plt.savefig(filename, dpi=300)
 
-def train_randomForest(X_train, y_train, X_test, y_test, args, param_dist):
+def train_randomForest(X, y, X_val, y_val, args, param_dist):
 	"""finds best parameters for random forest"""
 	Printer(colored('(training) ', 'green') +
 			'training random forest')
 	clf = RandomForestClassifier(n_estimators = 2000)
 	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
-	pipe.fit(X_train, y_train)
-	y_pred = clf.predict(X_test)
-	prob_pos = clf.predict_proba(X_test)[:, 1]
-	print('\n\n-------------------------------------------------------------')
-	print("Classification report (random forest:")
-	print("Precision:\t %1.3f" % precision_score(y_test, y_pred))
-	print("Recall:\t\t %1.3f" % recall_score(y_test, y_pred))
-	print("F1:\t\t %1.3f" % f1_score(y_test, y_pred))
-	print('-------------------------------------------------------------\n')
-	fraction_of_positives, mean_predicted_value = \
-	calibration_curve(y_test, prob_pos, n_bins=10)
+	scoring = {'accuracy': 'accuracy', 'precision': 'precision', 'recall': 'recall'}
+	scores = cross_validate(pipe, X, y, scoring=scoring, cv=3, return_train_score=False)
+	label = 'final model'
+	print(scores)
+	print("\nest_accuracy: %0.2f (+/- %0.2f) [%s]" %
+		(scores["test_accuracy"].mean(), scores["test_accuracy"].std(), label))
+	print("\nrecall: %0.2f (+/- %0.2f) [%s]" %
+		(scores["test_recall"].mean(), scores["test_recall"].std(), label))
+	print("\nest_recall: %0.2f (+/- %0.2f) [%s]" %
+		(scores["test_precision"].mean(), scores["test_precision"].std(), label))
+
+	#	y_pred = clf.predict(X_test)
+#	prob_pos = clf.predict_proba(X_test)[:, 1]
+#	print('\n\n-------------------------------------------------------------')
+#	print("Classification report (random forest:")
+#	print("Precision:\t %1.3f" % precision_score(y_test, y_pred))
+#	print("Recall:\t\t %1.3f" % recall_score(y_test, y_pred))
+#	print("F1:\t\t %1.3f" % f1_score(y_test, y_pred))
+# print('-------------------------------------------------------------\n')
+#	fraction_of_positives, mean_predicted_value = \
+#	calibration_curve(y_test, prob_pos, n_bins=10)
 
 	# save model
 	#filename = 'cv_final/randomforest_final_' + str(np.amax(acc)) + '.pkl'
