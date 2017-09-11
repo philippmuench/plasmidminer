@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python -W ignore::DeprecationWarning
 # script to get individual model
 # philipp.muench@helmholtz-hzi.de
 from scipy.stats import randint as sp_randint
@@ -268,16 +268,14 @@ def build_voting(rf_model, svc_model, rvc_model, gbc_model, X_loc, y_loc, args):
 	Printer(colored('(training) ', 'green') +
 		'searching for voting sheme')
 	clf = VotingClassifier(estimators=[('rf', rf_model), ('svc', svc_model),
-	 ('rvc', rvc_model), ('gbc', gbc_model)], voting='hard')
+	 ('rvc', rvc_model), ('gbc', gbc_model)], voting='soft')
 	scoring = {'accuracy': 'accuracy'}
-
 	scores = cross_validate(clf, X_loc, y_loc, scoring=scoring, cv=3, return_train_score=False)
 	acc = scores["test_accuracy"].mean()
 	filename = 'cv/voting_' + str(acc) + '.pkl'
 	# save model
 	savemodel(clf, filename)
 	return clf, acc
-
 
 def showinput(X_loc,y_loc,string):
 	"""outputs basic statistics of input files"""
@@ -305,6 +303,9 @@ if __name__ == "__main__":
 	# load data from msgpack object
 #	X, y = loaddataset(args.dataset)
 
+	# setting up log file
+	old_stdout = sys.stdout
+	log_file = open("log.txt", "w")
 	X, y = creatematrix(args.dataset + '/train.features.clear2.csv', args.dataset +'/train.features.kmer', args)
 
 	# print input data
@@ -320,7 +321,9 @@ if __name__ == "__main__":
 	#X_train, X_test, y_train, y_test = train_test_split(X_sub, y_sub, test_size=0.33)
 
 	# print input data
+	sys.stdout = log_file
 	showinput(X_sub, y_sub, 'training data')
+	sys.stdout = old_stdout
 
 	# print input data
 	#showinput(X_test, y_test, 'testing data')
@@ -339,6 +342,7 @@ if __name__ == "__main__":
 	voting_model, voting_acc = build_voting(rf_model, svc_model, rvc_model, 
 		gbc_model, X_sub, y_sub, args)
 
+	sys.stdout = log_file
 	print('\n')
 	print('--------------------------------------------')
 	if 'svc_model' in locals():
@@ -352,3 +356,4 @@ if __name__ == "__main__":
 	if 'voting_model' in locals():
 		print('voting accuracy: %0.2f' % np.mean(voting_acc))
 	print('--------------------------------------------')
+	sys.stdout = old_stdout
