@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# evaluation of different classifiers for plasmid/chr discrimination
+# script to get individual model
 # philipp.muench@helmholtz-hzi.de
 from scipy.stats import randint as sp_randint
 import sys
@@ -20,8 +20,10 @@ from skbayes.rvm_ard_models import RVR,RVC
 try:
 	from sklearn.externals import joblib
 	from sklearn.pipeline import Pipeline
+	from sklearn.model_selection import cross_validate
 	from sklearn import preprocessing
 	from sklearn.preprocessing import StandardScaler
+	from sklearn.ensemble import VotingClassifier
 	from sklearn.preprocessing import MaxAbsScaler
 	from sklearn.model_selection import RandomizedSearchCV
 	from sklearn.ensemble import RandomForestClassifier
@@ -62,7 +64,7 @@ def creatematrix(features, kmer, args):
 
 def savemodel(model, filename):
 	"""Saves the model to the cv/ folder"""
-	Printer(colored('(preprocessing) ', 'green') + 'save model file to cv/ folder')
+	print('saved model to ' + filename)
 	with open(filename, 'wb') as fid:
 		joblib.dump(model, fid, compress=9)
 
@@ -140,7 +142,7 @@ def report(results, n_top=3):
 			print("Parameters: {0}".format(results['params'][candidate]))
 			print("")
 
-def build_randomForest(X, y, args):
+def build_randomForest(X_loc, y_loc, args):
 	"""finds best parameters for random forest"""
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for random forest')
@@ -154,7 +156,7 @@ def build_randomForest(X, y, args):
 	clf = RandomForestClassifier(n_estimators = 2000)
 	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
 	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=int(args.iter), n_jobs=-1, refit=True, cv=3)
-	random_search.fit(X, y)
+	random_search.fit(X_loc, y_loc)
 	acc = random_search.cv_results_['mean_test_score']
 	filename = 'cv/randomforest_' + str(np.amax(acc)) + '.pkl'
 	# save model
@@ -164,7 +166,7 @@ def build_randomForest(X, y, args):
 	saveparams(random_search.best_params_, filename_param)
 	return random_search, acc
 
-def build_logisticregression(X, y, args):
+def build_logisticregression(X_loc, y_loc, args):
 	"""finds best parameters for logistic regression"""
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for logistic regression')
@@ -176,7 +178,7 @@ def build_logisticregression(X, y, args):
 				  }
 	clf = LogisticRegression(penalty='l2')
 	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=int(args.iter), n_jobs=-1, refit=True, cv=3)
-	random_search.fit(X, y)
+	random_search.fit(X_loc, y_loc)
 	acc = random_search.cv_results_['mean_test_score']
 	filename = 'cv/logisticregression_' + str(np.amax(acc)) + '.pkl'
 	# save model
@@ -186,7 +188,7 @@ def build_logisticregression(X, y, args):
 	saveparams(random_search.best_params_, filename_param)
 	return random_search
 
-def build_svc(X, y, args):
+def build_svc(X_loc, y_loc, args):
 	"""finds best parameters for support vector machine"""
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for SVC')
@@ -200,7 +202,7 @@ def build_svc(X, y, args):
 	clf = SVC(probability=True)
 	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
 	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=int(args.iter), n_jobs=-1, refit=True, cv=3)
-	random_search.fit(X, y)
+	random_search.fit(X_loc, y_loc)
 	acc = random_search.cv_results_['mean_test_score']
 	# save model
 	filename = 'cv/svc_' + str(np.amax(acc)) + '.pkl'
@@ -211,7 +213,7 @@ def build_svc(X, y, args):
 	return random_search, acc
 #   report(random_search.cv_results_)
 
-def build_rvc(X, y, args):
+def build_rvc(X_loc, y_loc, args):
 	"""finds best parameters for relevance vector machine"""
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for RVC')
@@ -227,7 +229,7 @@ def build_rvc(X, y, args):
 	clf = RVC()
 	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
 	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=int(args.iter), n_jobs=-1, refit=True, cv=3)
-	random_search.fit(X, y)
+	random_search.fit(X_loc, y_loc)
 	acc = random_search.cv_results_['mean_test_score']
 	filename = 'cv/rvc_' + str(np.amax(acc)) + '.pkl'
 	# save model
@@ -237,7 +239,7 @@ def build_rvc(X, y, args):
 	saveparams(random_search.best_params_, filename_param)
 	return random_search, acc
 
-def build_gbc(X, y, args):
+def build_gbc(X_loc, y_loc, args):
 	"""finds best parameters for gradient boosting classifier"""
 	Printer(colored('(training) ', 'green') +
 			'searching for best parameters for GBC forest')
@@ -252,7 +254,7 @@ def build_gbc(X, y, args):
 	clf = GradientBoostingClassifier()
 	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
 	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=int(args.iter), n_jobs=-1, refit=True, cv=3)
-	random_search.fit(X, y)
+	random_search.fit(X_loc, y_loc)
 	acc = random_search.cv_results_['mean_test_score']
 	filename = 'cv/gbc_' + str(np.amax(acc)) + '.pkl'
 	# save model
@@ -262,13 +264,28 @@ def build_gbc(X, y, args):
 	saveparams(random_search.best_params_, filename_param)
 	return random_search, acc
 
-def showinput(X,y,string):
+def build_voting(rf_model, svc_model, rvc_model, gbc_model, X_loc, y_loc, args):
+	Printer(colored('(training) ', 'green') +
+		'searching for voting sheme')
+	clf = VotingClassifier(estimators=[('rf', rf_model), ('svc', svc_model),
+	 ('rvc', rvc_model), ('gbc', gbc_model)], voting='hard')
+	scoring = {'accuracy': 'accuracy'}
+
+	scores = cross_validate(clf, X_loc, y_loc, scoring=scoring, cv=3, return_train_score=False)
+	acc = scores["test_accuracy"].mean()
+	filename = 'cv/voting_' + str(acc) + '.pkl'
+	# save model
+	savemodel(clf, filename)
+	return clf, acc
+
+
+def showinput(X_loc,y_loc,string):
 	"""outputs basic statistics of input files"""
 	print('\n-------------------------------------------------------------')
 	print(str(string))
-	print "number of instances:\t", X.shape[0]
-	print "number of features:\t", X.shape[1]
-	print "response:\t", collections.Counter(y)
+	print "number of instances:\t", X_loc.shape[0]
+	print "number of features:\t", X_loc.shape[1]
+	print "response:\t", collections.Counter(y_loc)
 	print('-------------------------------------------------------------\n')
 
 if __name__ == "__main__":
@@ -276,15 +293,13 @@ if __name__ == "__main__":
 	parser.add_argument('-d', '--dataset', action='store', dest='dataset',
 						help='path to data folder', default='dat')
 	parser.add_argument('-i', '--iterations', action='store', dest='iter',
-						help='number of random iterationsfor hyperparameter optimization', default=5)
+						help='number of random iterationsfor hyperparameter optimization', default=50)
 	parser.add_argument('-c', '--cv', action='store', dest='cv',
-						help='cross validation size (e.g. 10 for 10-fold cross validation) for ROC', default=3)
+						help='cross validation size (e.g. 10 for 10-fold cross validation)', default=3)
 	# binary
-	parser.add_argument('--roc', dest='roc',
-						action='store_true', help='plot ROC curve')
 	parser.add_argument('--sobol', dest='sobol',
 						action='store_true', help='use sobol sequence for random search')
-	parser.add_argument('--version', action='version', version='%(prog)s 0.1')
+	parser.add_argument('--version', action='version', version='%(prog)s 0.2')
 	args = parser.parse_args()
 
 	# load data from msgpack object
@@ -301,25 +316,28 @@ if __name__ == "__main__":
 	X_sub, y_sub = balanced_subsample(X, y)
 
 	# split train/testset
-	Printer(colored('(preprocessing) ', 'green') + 'generate train/test set')
-	X_train, X_test, y_train, y_test = train_test_split(X_sub, y_sub, test_size=0.2)
+	#Printer(colored('(preprocessing) ', 'green') + 'generate train/test set')
+	#X_train, X_test, y_train, y_test = train_test_split(X_sub, y_sub, test_size=0.33)
 
 	# print input data
-	showinput(X_train, y_train, 'training data')
+	showinput(X_sub, y_sub, 'training data')
 
 	# print input data
-	showinput(X_test, y_test, 'testing data')
+	#showinput(X_test, y_test, 'testing data')
 
 	# create output folder
 	if not os.path.exists('cv'):
 		os.makedirs('cv')
 
 	# optimize hyperparameters model
-	rf_model, rf_acc = build_randomForest(X_train, y_train, args)
-	#lg_model = build_logisticregression(X_train, y_train, args)
-	svc_model, svc_acc = build_svc(X_train, y_train, args)
-	rvc_model, rvc_acc = build_rvc(X_train, y_train, args)
-	gbc_model, gbc_acc = build_gbc(X_train, y_train, args)
+	rf_model, rf_acc = build_randomForest(X_sub, y_sub, args)
+	svc_model, svc_acc = build_svc(X_sub, y_sub, args)
+	rvc_model, rvc_acc = build_rvc(X_sub, y_sub, args)
+	gbc_model, gbc_acc = build_gbc(X_sub, y_sub, args)
+
+	# create voting classifier
+	voting_model, voting_acc = build_voting(rf_model, svc_model, rvc_model, 
+		gbc_model, X_sub, y_sub, args)
 
 	print('\n')
 	print('--------------------------------------------')
@@ -331,23 +349,6 @@ if __name__ == "__main__":
 		print('RF accuracy: %0.2f' % np.amax(rf_acc))
 	if 'gbc_model' in locals():
 		print('GBC accuracy: %0.2f' % np.amax(gbc_acc))
+	if 'voting_model' in locals():
+		print('voting accuracy: %0.2f' % np.amax(voting_acc))
 	print('--------------------------------------------')
-
-	# draw ROC from the optimized models
-	if args.roc:
-		all_clf = []
-		clf_labels = []
-		if 'svc_model' in locals():
-			all_clf += svc_model
-			all_clf += 'SVC'
-		if 'rvc_model' in locals():
-			all_clf += rvc_model
-			all_clf += 'RVC'
-		if 'rf_model' in locals():
-			all_clf += rf_model
-			all_clf += 'Rf'
-		if 'gbc_model' in locals():
-			all_clf += gbc_model
-			all_clf += 'GBC'
-		Printer(colored('(training) ', 'green') + 'draw ROC curve')
-		drawroc(all_clf, clf_labels, X_train, y_train, X_test, y_test)
