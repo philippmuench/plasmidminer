@@ -1,0 +1,35 @@
+
+-------------------------------------------------------------
+imported data
+number of instances:	2776
+number of features:	2748
+response:	Counter({1: 2010, 0: 766})
+-------------------------------------------------------------
+
+
+-------------------------------------------------------------
+training data
+number of instances:	1026
+number of features:	2748
+response:	Counter({0.0: 516, 1.0: 510})
+-------------------------------------------------------------
+
+
+-------------------------------------------------------------
+testing data
+number of instances:	506
+number of features:	2748
+response:	Counter({1.0: 256, 0.0: 250})
+-------------------------------------------------------------
+
+
+test_accuracy: 0.79 (+/- 0.02) [final model]
+test_recall: 0.81 (+/- 0.04) [final model]
+test_precision: 0.78 (+/- 0.02) [final model]
+test_roc_auc: 0.86 (+/- 0.02) [final model]
+test_average_precision: 0.85 (+/- 0.02) [final model]
+test_f1: 0.79 (+/- 0.02) [final model]
+test_f1_micro: 0.79 (+/- 0.02) [final model]
+test_f1_macro: 0.79 (+/- 0.02) [final model]
+test_f1_weighted: 0.79 (+/- 0.02) [final model]
+saved model to evaluation/randomforest_final_0.791423001949.pkl

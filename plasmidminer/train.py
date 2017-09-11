@@ -2,7 +2,6 @@ import os, glob, sys
 import argparse
 #import cPickle
 from termcolor import colored
-
 import matplotlib.pyplot as plt
 import numpy as np
 import gzip
@@ -113,8 +112,8 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
              label="Cross-validation score")
 
     plt.legend(loc="best")
-    plt.savefig('learning_curve.png')   # save the figure to file
-    return plt
+    plt.savefig('evaluation/learning_curve.png')   # save the figure to file
+    plt.close()
 
 def drawsingleroc(clf, clf_label, X_train, y_train, X_test, y_test):
 	"""draw a roc curve for each model in clf, save as roc.png"""
@@ -134,14 +133,13 @@ def drawsingleroc(clf, clf_label, X_train, y_train, X_test, y_test):
 	plt.grid()
 	plt.xlabel('False Positive Rate')
 	plt.ylabel('True Positive Rate')
-	filename = 'roc_auc_' + str(np.amax(roc_auc)) + '.png'
+	filename = 'evaluation/roc_auc_' + str(np.amax(roc_auc)) + '.png'
 	# plt.tight_layout()
 	plt.savefig(filename, dpi=300)
+	plt.close()
 
 def evaluate_randomForest(X, y, X_val, y_val, args, param_dist):
 	"""finds best parameters for random forest"""
-	Printer(colored('(training) ', 'green') +
-			'training random forest')
 	clf = RandomForestClassifier(n_estimators = 2000)
 	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
 	scoring = {'accuracy': 'accuracy', 'precision': 'precision', 'recall': 'recall',
@@ -168,8 +166,8 @@ def evaluate_randomForest(X, y, X_val, y_val, args, param_dist):
 	print("test_f1_weighted: %0.2f (+/- %0.2f) [%s]" %
 		(scores["test_f1_weighted"].mean(), scores["test_f1_weighted"].std(), label))
 
-	filename = 'cv_final/randomforest_final_' + str(np.amax(acc)) + '.pkl'
-	savemodel(pipe, filename)
+	filename = 'evaluation/randomforest_final_' + str(scores["test_accuracy"].mean()) + '.pkl'
+	findparameters.savemodel(pipe, filename)
 	return pipe
 
 if __name__ == "__main__":
@@ -185,45 +183,66 @@ if __name__ == "__main__":
 	parser.add_argument('--version', action='version', version='%(prog)s 0.1')
 	args = parser.parse_args()
 
-	# load raw data
-	X, y = findparameters.creatematrix(args.data + '/train.features.clear2.csv', args.data +'/train.features.kmer', args)
+	# setting up log file
+	old_stdout = sys.stdout
+	log_file = open("evaluation/log.txt", "w")
 
 	# print input data
-	findparameters.showinput(X, y, 'imported data')
+	X, y = findparameters.creatematrix(args.data + '/train.features.clear2.csv', args.data +'/train.features.kmer', args)
+	sys.stdout = log_file
 
+	findparameters.showinput(X, y, 'imported data')
+	
 	# generate a random subset
+	sys.stdout = old_stdout
 	Printer(colored('(preprocessing) ', 'green') + 'generate a random balanced subset')
+	sys.stdout = log_file
 
 	# generate subsample with equal amount of pos/neg instances
 	X_sub, y_sub = findparameters.balanced_subsample(X, y)
 
 	# split train/testset
+	sys.stdout = old_stdout
 	Printer(colored('(preprocessing) ', 'green') + 'generate train/test set')
-	X_train, X_test, y_train, y_test = train_test_split(X_sub, y_sub, test_size=0.33)
+	sys.stdout = log_file
+
+	X_train, X_val, y_train, y_val = train_test_split(X_sub, y_sub, test_size=0.33)
 
 	# print input data
 	findparameters.showinput(X_train, y_train, 'training data')
 
 	# print input data
-	findparameters.showinput(X_test, y_test, 'testing data')
+	findparameters.showinput(X_val, y_val, 'validation data')
 
 	# create output folder
-	if not os.path.exists('cv_final'):
-		os.makedirs('cv_final')
+	if not os.path.exists('evaluation'):
+		os.makedirs('evaluation')
 
 	# load parameters
+	sys.stdout = old_stdout
 	Printer(colored('(processing) ', 'green') + 'load model' )
+	sys.stdout = log_file
+
 	param_dist = joblib.load('cv/randomforest_param_0.774145616642.pkl')
 
 	# tain model
+	sys.stdout = old_stdout
 	Printer(colored('(processing) ', 'green') + 'train model' )
-	estimator = evaluate_randomForest(X_train, y_train, X_test, y_test, args, param_dist)
+	sys.stdout = log_file
+
+	estimator = evaluate_randomForest(X_train, y_train, X_val, y_val, args, param_dist)
 
 	# plot learning curve
+	sys.stdout = old_stdout
 	Printer(colored('(processing) ', 'green') + 'plot learning curve' )
+	sys.stdout = log_file
 	cv_shuffle = ShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
 	plot_learning_curve(estimator, 'Learning Curves', X, y, ylim=(0.7, 1.01), cv=cv_shuffle, n_jobs=4)
 
 	# draw ROC curve
+	sys.stdout = old_stdout
 	Printer(colored('(processing) ', 'green') + 'draw ROC curve' )
-	drawsingleroc(estimator,'final model', X_train, y_train, X_test, y_test)
+	sys.stdout = log_file
+
+	drawsingleroc(estimator,'final model', X_train, y_train, X_val, y_val)
+	log_file.close()
