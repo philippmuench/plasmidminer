@@ -229,10 +229,10 @@ if __name__ == "__main__":
     parser.add_argument('--window', action='store', dest='window', help='size of sliding window', default='100')
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
-    #if (args.sliding):
-    #    print('sliding window')
-    #    slidewindowfragments(args)
-    #    args.input = 'dat/window_fragments.fasta'
+    if (args.sliding):
+        Printer(colored('(preprocessing) ', 'green') + 'run sliding window')
+        slidewindowfragments(args)
+        args.input = 'dat_tmp/window_fragments.fasta'
 
     getstatfeatures(args)
     extractkmers(args)
@@ -248,7 +248,12 @@ if __name__ == "__main__":
     np.savetxt('predictions.txt', predictions)
     if (args.sliding):
     	Printer(colored('(running) ', 'green') + 'make prediction within sliding window')
-        probabilities = pipe.predict_proba(X)[:,1]# probability that this is a plasmid
+        probabilities = pipe.predict_proba(X)[:,1]# probabilitiesility that this is a plasmid
+        np.savetxt('window_probabilities.txt', probabilities)
+		#for index, row in X.iterrows():
+		#	print('Prediction: %s\nProbability: %.2f%%' %\
+		#		(label[pipe.predict(X)[index]], pipe.predict_proba(X)[index].max()*100))
+
     else:
     	Printer(colored('(running) ', 'green') + 'predict input fasta file')
         probabilities = np.amax(pipe.predict_proba(X), axis=1) # max probability over two classes
@@ -257,8 +262,5 @@ if __name__ == "__main__":
     	Printer(colored('(running) ', 'green') + 'generate fasta files')
         plasmid_sequences, chromsom_sequences = sepseq(args.input, predictions, probabilities, args)
         Printer(colored('(running) ', 'green') + 'finished')
-    showresults(args, plasmid_sequences, chromsom_sequences)
+    	showresults(args, plasmid_sequences, chromsom_sequences)
 
-#   for index, row in X.iterrows():
-#       print('Prediction: %s\nProbability: %.2f%%' %\
-#           (label[pipe.predict(X)[index]], pipe.predict_proba(X)[index].max()*100))
