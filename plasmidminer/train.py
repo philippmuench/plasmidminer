@@ -1,6 +1,9 @@
+#!/usr/bin/python
+# script to train final classifier based on optimized parameter set
+# philipp.muench@helmholtz-hzi.de
+
 import os, glob, sys
 import argparse
-#import cPickle
 from termcolor import colored
 import matplotlib.pyplot as plt
 import numpy as np
@@ -223,7 +226,7 @@ if __name__ == "__main__":
 	Printer(colored('(processing) ', 'green') + 'load model' )
 	sys.stdout = log_file
 
-	param_dist = joblib.load('cv/randomforest_param_0.774145616642.pkl')
+	param_dist = joblib.load(args.model_param)
 
 	# tain model
 	sys.stdout = old_stdout
