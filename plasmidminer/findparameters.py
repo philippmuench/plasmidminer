@@ -158,11 +158,11 @@ def build_randomForest(X_loc, y_loc, args):
 	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=int(args.iter), n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X_loc, y_loc)
 	acc = random_search.cv_results_['mean_test_score']
-	filename = 'cv/randomforest_' + str(np.amax(acc)) + '.pkl'
+	filename = 'cv/randomforest_' + str(np.mean(acc)) + '.pkl'
 	# save model
 	savemodel(random_search, filename)
 	# save best params
-	filename_param = 'cv/randomforest_param_' + str(np.amax(acc)) + '.pkl'
+	filename_param = 'cv/randomforest_param_' + str(np.mean(acc)) + '.pkl'
 	saveparams(random_search.best_params_, filename_param)
 	return random_search, acc
 
@@ -180,11 +180,11 @@ def build_logisticregression(X_loc, y_loc, args):
 	random_search = RandomizedSearchCV(clf, param_distributions=param_dist, scoring='accuracy', n_iter=int(args.iter), n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X_loc, y_loc)
 	acc = random_search.cv_results_['mean_test_score']
-	filename = 'cv/logisticregression_' + str(np.amax(acc)) + '.pkl'
+	filename = 'cv/logisticregression_' + str(np.mean(acc)) + '.pkl'
 	# save model
 	savemodel(random_search, filename)
 	# save best params
-	filename_param = 'cv/logisticregression_param_' + str(np.amax(acc)) + '.json'
+	filename_param = 'cv/logisticregression_param_' + str(np.mean(acc)) + '.json'
 	saveparams(random_search.best_params_, filename_param)
 	return random_search
 
@@ -205,10 +205,10 @@ def build_svc(X_loc, y_loc, args):
 	random_search.fit(X_loc, y_loc)
 	acc = random_search.cv_results_['mean_test_score']
 	# save model
-	filename = 'cv/svc_' + str(np.amax(acc)) + '.pkl'
+	filename = 'cv/svc_' + str(np.mean(acc)) + '.pkl'
 	savemodel(random_search, filename)
 	# save best params
-	filename_param = 'cv/svc_param_' + str(np.amax(acc)) + '.pkl'
+	filename_param = 'cv/svc_param_' + str(np.mean(acc)) + '.pkl'
 	saveparams(random_search.best_params_, filename_param)
 	return random_search, acc
 #   report(random_search.cv_results_)
@@ -231,11 +231,11 @@ def build_rvc(X_loc, y_loc, args):
 	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=int(args.iter), n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X_loc, y_loc)
 	acc = random_search.cv_results_['mean_test_score']
-	filename = 'cv/rvc_' + str(np.amax(acc)) + '.pkl'
+	filename = 'cv/rvc_' + str(np.mean(acc)) + '.pkl'
 	# save model
 	savemodel(random_search, filename)
 	# save best params
-	filename_param = 'cv/rvc_param_' + str(np.amax(acc)) + '.pkl'
+	filename_param = 'cv/rvc_param_' + str(np.mean(acc)) + '.pkl'
 	saveparams(random_search.best_params_, filename_param)
 	return random_search, acc
 
@@ -256,11 +256,11 @@ def build_gbc(X_loc, y_loc, args):
 	random_search = RandomizedSearchCV(pipe, param_distributions=param_dist, scoring='accuracy', n_iter=int(args.iter), n_jobs=-1, refit=True, cv=3)
 	random_search.fit(X_loc, y_loc)
 	acc = random_search.cv_results_['mean_test_score']
-	filename = 'cv/gbc_' + str(np.amax(acc)) + '.pkl'
+	filename = 'cv/gbc_' + str(np.mean(acc)) + '.pkl'
 	# save model
 	savemodel(random_search, filename)
 	# save best params
-	filename_param = 'cv/gcb_param_' + str(np.amax(acc)) + '.pkl'
+	filename_param = 'cv/gcb_param_' + str(np.mean(acc)) + '.pkl'
 	saveparams(random_search.best_params_, filename_param)
 	return random_search, acc
 
@@ -342,13 +342,13 @@ if __name__ == "__main__":
 	print('\n')
 	print('--------------------------------------------')
 	if 'svc_model' in locals():
-		print('SVC accuracy: %0.2f' % np.amax(svc_acc))
+		print('SVC accuracy: %0.2f' % np.mean(svc_acc))
 	if 'rvc_model' in locals():
-		print('RVC accuracy: %0.2f' % np.amax(rvc_acc))
+		print('RVC accuracy: %0.2f' % np.mean(rvc_acc))
 	if 'rf_model' in locals():
-		print('RF accuracy: %0.2f' % np.amax(rf_acc))
+		print('RF accuracy: %0.2f' % np.mean(rf_acc))
 	if 'gbc_model' in locals():
-		print('GBC accuracy: %0.2f' % np.amax(gbc_acc))
+		print('GBC accuracy: %0.2f' % np.mean(gbc_acc))
 	if 'voting_model' in locals():
-		print('voting accuracy: %0.2f' % np.amax(voting_acc))
+		print('voting accuracy: %0.2f' % np.mean(voting_acc))
 	print('--------------------------------------------')
