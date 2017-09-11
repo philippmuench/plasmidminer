@@ -138,7 +138,7 @@ def drawsingleroc(clf, clf_label, X_train, y_train, X_test, y_test):
 	# plt.tight_layout()
 	plt.savefig(filename, dpi=300)
 
-def train_randomForest(X, y, X_val, y_val, args, param_dist):
+def evaluate_randomForest(X, y, X_val, y_val, args, param_dist):
 	"""finds best parameters for random forest"""
 	Printer(colored('(training) ', 'green') +
 			'training random forest')
@@ -149,7 +149,6 @@ def train_randomForest(X, y, X_val, y_val, args, param_dist):
 	 'f1_micro' : 'f1_micro','f1_macro' : 'f1_macro','f1_weighted' : 'f1_weighted'}
 	scores = cross_validate(pipe, X, y, scoring=scoring, cv=3, return_train_score=False)
 	label = 'final model'
-	print(scores)
 	print("\ntest_accuracy: %0.2f (+/- %0.2f) [%s]" %
 		(scores["test_accuracy"].mean(), scores["test_accuracy"].std(), label))
 	print("test_recall: %0.2f (+/- %0.2f) [%s]" %
@@ -168,20 +167,9 @@ def train_randomForest(X, y, X_val, y_val, args, param_dist):
 		(scores["test_f1_macro"].mean(), scores["test_f1_macro"].std(), label))
 	print("test_f1_weighted: %0.2f (+/- %0.2f) [%s]" %
 		(scores["test_f1_weighted"].mean(), scores["test_f1_weighted"].std(), label))
-	#	y_pred = clf.predict(X_test)
-#	prob_pos = clf.predict_proba(X_test)[:, 1]
-#	print('\n\n-------------------------------------------------------------')
-#	print("Classification report (random forest:")
-#	print("Precision:\t %1.3f" % precision_score(y_test, y_pred))
-#	print("Recall:\t\t %1.3f" % recall_score(y_test, y_pred))
-#	print("F1:\t\t %1.3f" % f1_score(y_test, y_pred))
-# print('-------------------------------------------------------------\n')
-#	fraction_of_positives, mean_predicted_value = \
-#	calibration_curve(y_test, prob_pos, n_bins=10)
 
-	# save model
-	#filename = 'cv_final/randomforest_final_' + str(np.amax(acc)) + '.pkl'
-	#savemodel(pipe, filename)
+	filename = 'cv_final/randomforest_final_' + str(np.amax(acc)) + '.pkl'
+	savemodel(pipe, filename)
 	return pipe
 
 if __name__ == "__main__":
@@ -229,12 +217,12 @@ if __name__ == "__main__":
 
 	# tain model
 	Printer(colored('(processing) ', 'green') + 'train model' )
-	estimator = train_randomForest(X_train, y_train, X_test, y_test, args, param_dist)
+	estimator = evaluate_randomForest(X_train, y_train, X_test, y_test, args, param_dist)
 
 	# plot learning curve
-#	Printer(colored('(processing) ', 'green') + 'plot learning curve' )
-#	cv_shuffle = ShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
-#	plot_learning_curve(estimator, 'Learning Curves', X, y, ylim=(0.7, 1.01), cv=cv_shuffle, n_jobs=4)
+	Printer(colored('(processing) ', 'green') + 'plot learning curve' )
+	cv_shuffle = ShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
+	plot_learning_curve(estimator, 'Learning Curves', X, y, ylim=(0.7, 1.01), cv=cv_shuffle, n_jobs=4)
 
 	# draw ROC curve
 	Printer(colored('(processing) ', 'green') + 'draw ROC curve' )
