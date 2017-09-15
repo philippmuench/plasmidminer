@@ -260,11 +260,15 @@ if __name__ == "__main__":
         out = np.column_stack((contig_id2,probabilities))
         out_pd = pd.DataFrame(out,  columns = ["id", "prediction"])
         out_pd[['prediction']] = out_pd[['prediction']].apply(pd.to_numeric)
-        agg_funcs = dict(min='min', max='max', mean='mean', Std='std')
-        df = out_pd.set_index(['id']).stack().groupby(level=0).agg(agg_funcs)
+        df = out_pd.set_index(['id']).stack().groupby(level=0).agg('mean')
 
         out_pd.to_csv('full_report.txt', index=False)
         df.to_csv('contig_report.txt', index=True)
+        
+        df_masked = df.mask(df > .5, 'plasmid')
+        df_masked = df_masked.mask(df_masked <= .5, 'chromosome')
+        df_masked.to_csv('contig_report_string.txt', index=True)
+
 
         print("\noverall plasmid probability: %0.2f (+/- %0.2f)" %
         (probabilities.mean(), probabilities.std()))
