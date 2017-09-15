@@ -1,25 +1,26 @@
 #!/usr/bin/python
 # script to train final classifier based on optimized parameter set
 # philipp.muench@helmholtz-hzi.de
-
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
 import os, glob, sys
 import argparse
 from termcolor import colored
-import matplotlib.pyplot as plt
 import numpy as np
 import gzip
-from sklearn import metrics
-from sklearn.externals import joblib
-from sklearn.model_selection import cross_val_score, train_test_split
-from skbayes.rvm_ard_models import RVR,RVC
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import LinearSVC
-from sklearn.model_selection import learning_curve
-from sklearn.model_selection import ShuffleSplit
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import cross_validate
 try:
+	from sklearn import metrics
+	from sklearn.externals import joblib
+	from sklearn.model_selection import cross_val_score, train_test_split
+	from skbayes.rvm_ard_models import RVR,RVC
+	from sklearn.naive_bayes import GaussianNB
+	from sklearn.svm import LinearSVC
+	from sklearn.model_selection import learning_curve
+	from sklearn.model_selection import ShuffleSplit
+	from sklearn.linear_model import LogisticRegression
+	from sklearn.model_selection import cross_val_score
+	from sklearn.model_selection import cross_validate
 	from sklearn.externals import joblib
 	from sklearn.pipeline import Pipeline
 	from sklearn import preprocessing
@@ -176,6 +177,7 @@ def evaluate_gbc(X, y, X_val, y_val, args, param_dist):
 	print("test_f1_weighted: %0.2f (+/- %0.2f) [%s]" %
 		(scores["test_f1_weighted"].mean(), scores["test_f1_weighted"].std(), label))
 	filename = 'evaluation/gbc_final_' + str(scores["test_accuracy"].mean()) + '.pkl'
+	pipe.fit(X, y)
 	findparameters.savemodel(pipe, filename)
 	return pipe
 
@@ -186,7 +188,8 @@ def evaluate_randomForest(X, y, X_val, y_val, args, param_dist):
 		max_features=param_dist['clf__max_features'],
 		min_samples_split=param_dist['clf__min_samples_split'],
 		min_samples_leaf=param_dist['clf__min_samples_leaf'],
-		criterion=param_dist['clf__criterion'])
+		criterion=param_dist['clf__criterion'],
+		n_jobs = -1)
 	pipe = Pipeline([['sc', MaxAbsScaler()],['clf', clf]])
 	scoring = {'accuracy': 'accuracy', 'precision': 'precision', 'recall': 'recall',
 	 'roc_auc' : 'roc_auc', 'average_precision' : 'average_precision', 'f1' : 'f1',
@@ -212,6 +215,7 @@ def evaluate_randomForest(X, y, X_val, y_val, args, param_dist):
 	print("test_f1_weighted: %0.2f (+/- %0.2f) [%s]" %
 		(scores["test_f1_weighted"].mean(), scores["test_f1_weighted"].std(), label))
 	filename = 'evaluation/randomforest_final_' + str(scores["test_accuracy"].mean()) + '.pkl'
+	
 	findparameters.savemodel(pipe, filename)
 	return pipe
 
@@ -227,6 +231,10 @@ if __name__ == "__main__":
 						help='cross validation size (e.g. 10 for 10-fold cross validation)', default=3)
 	parser.add_argument('--version', action='version', version='%(prog)s 0.1')
 	args = parser.parse_args()
+
+	# create output folder
+	if not os.path.exists('evaluation'):
+		os.makedirs('evaluation')
 
 	# setting up log file
 	old_stdout = sys.stdout
@@ -258,10 +266,6 @@ if __name__ == "__main__":
 
 	# print input data
 	findparameters.showinput(X_val, y_val, 'validation data')
-
-	# create output folder
-	if not os.path.exists('evaluation'):
-		os.makedirs('evaluation')
 
 	# load parameters
 	sys.stdout = old_stdout
