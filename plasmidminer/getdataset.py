@@ -76,7 +76,7 @@ def getchunks(args):
 
 def createmerged(args):
 	"""writes chr/plasmid sequences to one file"""
-	filenames = [str(args.data) + '/plasmid_chunks.fasta.corrected.fasta.clear', str(args.data) + '/chromosome_chunks.fasta.corrected.fasta.clear']
+	filenames = [str(args.data) + '/plasmid_chunks.fasta.corrected.fasta', str(args.data) + '/chromosome_chunks.fasta.corrected.fasta']
 	fname = str(args.data) + '/train.fasta'
 	with open(fname, 'w') as outfile:
 		for fname in filenames:
@@ -207,7 +207,7 @@ if __name__ == "__main__":
 	parser.add_argument('-t', '--taxa', action='store', dest='taxa', help='Taxonomic name for downloaded samples', default='Escherichia coli')
 	parser.add_argument('-a', '--planum', action='store', dest='planum', help='Number of plasmids to be downloaded', default=100)
 	parser.add_argument('-b', '--chrnum', action='store', dest='chrnum', help='Number of chromosomes to be downloaded', default=20)
-	parser.add_argument('-c', '--chunksize', action='store', dest='chunksize', help='Chunk size in nt', default=200)
+	parser.add_argument('-c', '--chunksize', action='store', dest='chunksize', help='Chunk size in nt', default=150)
 	parser.add_argument('-s', '--readsim', dest='readsim', action='store_true', help='use read simluation based on wgsim instead of sliding window')
 	parser.add_argument('-N', '--simnum', action='store', dest='simnum', help='number of reads to simulate with wgsim', default=1000)
 	parser.add_argument('-e', "--email", help='Email adress needed for ncbi file download', dest="email", default="pmu15@helmholtz-hzi.de")
