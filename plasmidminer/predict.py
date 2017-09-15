@@ -5,6 +5,7 @@ import argparse
 from termcolor import colored
 import cPickle
 import pandas as pd
+import matplotlib.pyplot as plt
 import numpy as np
 import tempfile
 from sklearn.model_selection import cross_val_score, train_test_split
@@ -204,7 +205,9 @@ def slidewindowfragments(args):
     """Generate sliding window fragments from fasta file"""
     with open('dat_tmp/window_fragments.fasta',"w") as f:
         for seq_record in SeqIO.parse(args.input, "fasta"):
-            for i in range(len(seq_record.seq) - int(args.window) - 1) :
+            # process one contig
+            print(seq_record.name)
+            for i in range(0, len(seq_record.seq) - int(args.window) - 1, 150) :
                f.write(str(">" + seq_record.id) + "\n")
                f.write(str(seq_record.seq[i:i + int(args.window)]) + "\n")  #first 5 base positions
 
@@ -226,7 +229,7 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--split', dest='split', action='store_true', help='split data based on prediction')
     parser.add_argument('-p', '--probability', dest='probability', action='store_true', help='add probability information to fasta header')
     parser.add_argument('--sliding', dest='sliding', action='store_true', help='Predict on sliding window')
-    parser.add_argument('--window', action='store', dest='window', help='size of sliding window', default='100')
+    parser.add_argument('--window', action='store', dest='window', help='size of sliding window', default='150')
     parser.add_argument('--version', action='version', version='%(prog)s 1.0')
     args = parser.parse_args()
     if (args.sliding):
@@ -238,18 +241,39 @@ if __name__ == "__main__":
     extractkmers(args)
     Printer(colored('(preprocessing) ', 'green') + 'create matrix')
     dat = createpredictmatrix('dat_tmp/input.features.clear2.csv', 'dat_tmp/input.features.kmer')
+    SeqID = dat[dat.columns[0]]
     X = dat.drop(dat.columns[[0]], 1) # remove label
     Printer(colored('(preprocessing) ', 'green') + 'import model')
     with open(args.model, 'rb') as pkl_source:
         pipe = joblib.load(pkl_source)
     label = {0:'chromosomal', 1:'plasmid'}
     Printer(colored('(running) ', 'green') + 'save predictions to file')
+
     predictions = pipe.predict(X)
     np.savetxt('predictions.txt', predictions)
     if (args.sliding):
     	Printer(colored('(running) ', 'green') + 'make prediction within sliding window')
+
         probabilities = pipe.predict_proba(X)[:,1]# probabilitiesility that this is a plasmid
-        np.savetxt('window_probabilities.txt', probabilities)
+        contig_id2 = SeqID.values
+        contig_id = SeqID.reset_index().values
+        out = np.column_stack((contig_id2,probabilities))
+        out_pd = pd.DataFrame(out,  columns = ["id", "prediction"])
+        out_pd[['prediction']] = out_pd[['prediction']].apply(pd.to_numeric)
+        agg_funcs = dict(min='min', max='max', mean='mean', Std='std')
+        df = out_pd.set_index(['id']).stack().groupby(level=0).agg(agg_funcs)
+
+        out_pd.to_csv('full_report.txt', index=False)
+        df.to_csv('contig_report.txt', index=True)
+
+        print("\noverall plasmid probability: %0.2f (+/- %0.2f)" %
+        (probabilities.mean(), probabilities.std()))
+
+        x = range(0, len(probabilities))
+        plt.figure()
+        plt.scatter(x, probabilities)
+        plt.savefig('test.png')
+        plt.show()
 		#for index, row in X.iterrows():
 		#	print('Prediction: %s\nProbability: %.2f%%' %\
 		#		(label[pipe.predict(X)[index]], pipe.predict_proba(X)[index].max()*100))
