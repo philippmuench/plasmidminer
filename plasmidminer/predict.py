@@ -206,7 +206,6 @@ def slidewindowfragments(args):
     with open('dat_tmp/window_fragments.fasta',"w") as f:
         for seq_record in SeqIO.parse(args.input, "fasta"):
             # process one contig
-            print(seq_record.name)
             for i in range(0, len(seq_record.seq) - int(args.window) - 1, 150) :
                f.write(str(">" + seq_record.id) + "\n")
                f.write(str(seq_record.seq[i:i + int(args.window)]) + "\n")  #first 5 base positions
@@ -237,6 +236,9 @@ if __name__ == "__main__":
         slidewindowfragments(args)
         args.input = 'dat_tmp/window_fragments.fasta'
 
+    # create output folder
+    if not os.path.exists('dat_tmp'):
+        os.makedirs('dat_tmp')
     getstatfeatures(args)
     extractkmers(args)
     Printer(colored('(preprocessing) ', 'green') + 'create matrix')
@@ -263,21 +265,22 @@ if __name__ == "__main__":
         df = out_pd.set_index(['id']).stack().groupby(level=0).agg('mean')
 
         out_pd.to_csv('full_report.txt', index=False)
+        print("\nplasmid probability per sliding window written to: full_report.txt")
+
         df.to_csv('contig_report.txt', index=True)
         
         df_masked = df.mask(df > .5, 'plasmid')
         df_masked = df_masked.mask(df_masked <= .5, 'chromosome')
         df_masked.to_csv('contig_report_string.txt', index=True)
+        print("plasmid probability per contig written to: contig_report_string.txt")
 
-
-        print("\noverall plasmid probability: %0.2f (+/- %0.2f)" %
+        print("overall plasmid probability: %0.2f (std: %0.2f)" %
         (probabilities.mean(), probabilities.std()))
 
         x = range(0, len(probabilities))
         plt.figure()
         plt.scatter(x, probabilities)
         plt.savefig('test.png')
-        plt.show()
 		#for index, row in X.iterrows():
 		#	print('Prediction: %s\nProbability: %.2f%%' %\
 		#		(label[pipe.predict(X)[index]], pipe.predict_proba(X)[index].max()*100))
