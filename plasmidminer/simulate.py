@@ -85,7 +85,7 @@ def readsim(chunksize, simnum, input_file, output_file):
 	output_file_fq = output_file + '.fq'
 	output_file2_q = output_file + 'fq.l2'
 	s = " "
-	cmd = ("src/wgsim -e 0 -r 0 -R 0 -X 0 -A 0 -N", str(simnum), "-1", str(chunksize) , str(input_file), str(output_file_fq), str(output_file2_q))
+	cmd = ("src/wgsim -d 100 -e 0 -r 0 -R 0 -X 0 -A 0 -N", str(simnum), "-1", str(chunksize) , str(input_file), str(output_file_fq), str(output_file2_q))
 	print(s.join( cmd ))
 	os.system(s.join( cmd ))
 	confertfastqtofasta(output_file_fq, output_file)
