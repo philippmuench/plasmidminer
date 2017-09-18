@@ -53,7 +53,7 @@ def getchunks(args):
 	Printer(colored('(processing) ', 'green') + 'rewrite fasta headers (plasmids)')
 	if args.readsim:
 		if os.path.isfile(str(args.data) + '/plasmid.fasta'):
-			simulate.readsim(int(args.chunksize), int(args.simnum), str(args.data) + '/plasmid.fasta', str(args.data) + '/plasmid_chunks.fasta')
+			simulate.readsim(int(args.chunksize), int(args.simnum), str(args.data) + '/plasmid.fasta', str(args.data) + '/plasmid_chunks.fasta', 'art')
 		else:
 			print("Error: Cannot find plasmid.fasta. \n")
 			sys.exit(1)
@@ -67,7 +67,7 @@ def getchunks(args):
 		sys.exit(1)
 
 	if args.readsim:
-		simulate.readsim(int(args.chunksize), int(args.simnum), str(args.data) + '/chromosome.fasta', str(args.data) + '/chromosome_chunks.fasta')
+		simulate.readsim(int(args.chunksize), int(args.simnum), str(args.data) + '/chromosome.fasta', str(args.data) + '/chromosome_chunks.fasta', 'art')
 	else:
 		simulate.split(int(args.chunksize), str(args.data) + '/chr/*.fasta', str(args.data) + '/chromosome_chunks.fasta', str(args.data) + '/chr/*.frag.fasta')
 

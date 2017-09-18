@@ -80,15 +80,20 @@ def split(length, path, export, chunkspath):
 	for f in filelist:
 		os.remove(f)
 
-def readsim(chunksize, simnum, input_file, output_file):
+def readsim(chunksize, simnum, input_file, output_file, method):
 	Printer(colored('simulate reads of ' + input_file, 'green'))
 	output_file_fq = output_file + '.fq'
 	output_file2_q = output_file + 'fq.l2'
 	s = " "
-	cmd = ("src/wgsim -d 100 -e 0 -r 0 -R 0 -X 0 -A 0 -N", str(simnum), "-1", str(chunksize) , str(input_file), str(output_file_fq), str(output_file2_q))
-	print(s.join( cmd ))
-	os.system(s.join( cmd ))
-	confertfastqtofasta(output_file_fq, output_file)
+	if method == "wgsim":
+		cmd = ("src/wgsim -d 100 -e 0 -r 0 -R 0 -X 0 -A 0 -N", str(simnum), "-1", str(chunksize) , str(input_file), str(output_file_fq), str(output_file2_q), '>/dev/null')
+		os.system(s.join( cmd ))
+		confertfastqtofasta(output_file_fq, output_file)
+	if method == "art":
+		cmd = ("src/art_illumina -ss HS25 -c", str(simnum), "-1", str(chunksize) ,"-i", str(input_file), "-o",str(output_file_fq), '>/dev/null')
+		os.system(s.join( cmd ))
+		confertfastqtofasta(output_file_fq, output_file)
+
 
 def confertfastqtofasta(fq_path, fa_path):
 	# conert fastq to fasta
